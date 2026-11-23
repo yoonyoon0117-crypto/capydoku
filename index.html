@@ -14,7 +14,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=5">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <div class="app" id="app">
@@ -27,6 +27,10 @@
         </span>
       </div>
       <div class="top-actions">
+        <button class="icon-btn icon-btn-badge" id="btnCollection" type="button" aria-label="카피바라 도감">
+          <span aria-hidden="true">🏆</span>
+          <span class="count-badge" id="collectionCount">1/10</span>
+        </button>
         <button class="icon-btn" id="btnTheme" type="button" aria-label="다크 모드 전환">🌙</button>
         <button class="icon-btn" id="btnSettings" type="button" aria-label="설정">⚙️</button>
       </div>
@@ -118,10 +122,30 @@
         <div><b id="winBest">–</b><span>최고 기록</span></div>
         <div><b id="winStreak">–</b><span>연속 일수</span></div>
       </div>
+      <div class="win-unlock" id="winUnlock" hidden>
+        <p class="unlock-title">🎉 새 카피바라 해금!</p>
+        <div class="unlock-list" id="unlockList"></div>
+        <div class="unlock-actions">
+          <button class="unlock-btn" type="button" id="btnUseUnlock">바로 쓰기</button>
+          <button class="unlock-btn ghost" type="button" id="btnSeeUnlock">도감에서 보기</button>
+        </div>
+      </div>
       <div class="sheet-actions">
         <button class="primary" type="button" id="btnNextPuzzle">다음 퍼즐</button>
         <button class="ghost-btn" type="button" id="btnCloseWin">보드 보기</button>
       </div>
+    </section>
+
+    <section class="sheet sheet-collection" id="sheetCollection" role="dialog" aria-modal="true" aria-labelledby="collectionTitle" hidden>
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <button class="sheet-close" id="btnCloseCollection" type="button" aria-label="닫기">✕</button>
+      <h2 id="collectionTitle">🏆 카피바라 도감</h2>
+      <p class="collect-summary" id="collectSummary">수집 현황 <b>1 / 10</b> · 누적 클리어 0판</p>
+      <div class="collect-bar" id="collectBar" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="1" aria-label="도감 수집 진행">
+        <i id="collectBarFill"></i>
+      </div>
+      <div class="collect-grid" id="collectGrid"></div>
+      <p class="sheet-note" id="collectNote">해금한 카피바라는 눌러서 바로 장착할 수 있어요.</p>
     </section>
 
     <section class="sheet" id="sheetSeeds" role="dialog" aria-modal="true" aria-labelledby="seedsTitle" hidden>
@@ -144,7 +168,7 @@
     </section>
   </div>
 
-  <script src="./engine.js?v=5"></script>
-  <script src="./app.js?v=5"></script>
+  <script src="./engine.js?v=6"></script>
+  <script src="./app.js?v=6"></script>
 </body>
 </html>

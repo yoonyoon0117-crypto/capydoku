@@ -13,28 +13,408 @@
     return;
   }
 
-  var CAPY_SVG = [
-    '<svg class="capi" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
-    '<ellipse cx="14.5" cy="17.5" rx="7" ry="5.6" fill="#8d6242"/>',
-    '<ellipse cx="49.5" cy="17.5" rx="7" ry="5.6" fill="#8d6242"/>',
-    '<ellipse cx="14.5" cy="17.5" rx="3.2" ry="2.6" fill="#c08c6b"/>',
-    '<ellipse cx="49.5" cy="17.5" rx="3.2" ry="2.6" fill="#c08c6b"/>',
-    '<rect x="4.5" y="12" width="55" height="46" rx="16" fill="#b8865f"/>',
-    '<rect x="13" y="34" width="38" height="21" rx="10.5" fill="#ecd2b2"/>',
-    '<ellipse cx="28" cy="43.5" rx="1.7" ry="1.4" fill="#7a5540"/>',
-    '<ellipse cx="36" cy="43.5" rx="1.7" ry="1.4" fill="#7a5540"/>',
-    '<path d="M32 45.5v2.2M32 47.7c-1.4 1.8-3.4 1.8-4.6.4M32 47.7c1.4 1.8 3.4 1.8 4.6.4" stroke="#7a5540" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
-    '<circle cx="20.5" cy="29.5" r="2.7" fill="#3f2a1e"/>',
-    '<circle cx="43.5" cy="29.5" r="2.7" fill="#3f2a1e"/>',
-    '<circle cx="21.4" cy="28.6" r="0.9" fill="#fff8f0"/>',
-    '<circle cx="44.4" cy="28.6" r="0.9" fill="#fff8f0"/>',
-    '<ellipse cx="12.8" cy="37" rx="3.2" ry="2.1" fill="#e79c86" opacity="0.75"/>',
-    '<ellipse cx="51.2" cy="37" rx="3.2" ry="2.1" fill="#e79c86" opacity="0.75"/>',
-    '<circle cx="48.5" cy="11" r="6.2" fill="#ff9f43"/>',
-    '<circle cx="46.8" cy="9.4" r="1.8" fill="#ffc078" opacity="0.9"/>',
-    '<path d="M48.6 5.1c1.8-2.5 4.4-2.8 6.4-2-.9 2.6-3.3 3.8-6.4 2z" fill="#77b56a"/>',
-    '</svg>'
-  ].join('');
+  /* ------------------------------------------------------- 카피바라 도감 */
+  /* SKINS:SOURCE:BEGIN — /workspace/tmp/hamdoku/skins-preview.mjs extracts this block for artwork previews */
+  var SKIN_PALETTES = {
+    warm: { fur: '#b8865f', ear: '#8d6242', earIn: '#c08c6b', muzzle: '#ecd2b2', nose: '#7a5540', eye: '#3f2a1e', cheek: '#e79c86' },
+    sun: { fur: '#c1915f', ear: '#9c6f45', earIn: '#cfa87f', muzzle: '#f7e6cc', nose: '#7a5540', eye: '#3f2a1e', cheek: '#ec9f88' },
+    night: { fur: '#8f87b0', ear: '#6d668c', earIn: '#aa9fca', muzzle: '#f0e8fb', nose: '#5b5476', eye: '#2e2a45', cheek: '#f0a6bf' },
+    cream: { fur: '#dcb489', ear: '#bd9268', earIn: '#eccdab', muzzle: '#fff3e2', nose: '#7a5540', eye: '#3f2a1e', cheek: '#f4a79c' }
+  };
+
+  function num(v) {
+    return Math.round(v * 100) / 100;
+  }
+
+  /* four-point twinkle */
+  function sparklePath(cx, cy, r) {
+    var k = num(r * 0.2);
+    return (
+      'M' + num(cx) + ' ' + num(cy - r) +
+      'Q' + num(cx + k) + ' ' + num(cy - k) + ' ' + num(cx + r) + ' ' + num(cy) +
+      'Q' + num(cx + k) + ' ' + num(cy + k) + ' ' + num(cx) + ' ' + num(cy + r) +
+      'Q' + num(cx - k) + ' ' + num(cy + k) + ' ' + num(cx - r) + ' ' + num(cy) +
+      'Q' + num(cx - k) + ' ' + num(cy - k) + ' ' + num(cx) + ' ' + num(cy - r) + 'Z'
+    );
+  }
+
+  /* five-point star */
+  function starPath(cx, cy, r) {
+    var pts = [];
+    for (var i = 0; i < 10; i++) {
+      var rad = i % 2 ? r * 0.47 : r;
+      var a = -Math.PI / 2 + (i * Math.PI) / 5;
+      pts.push(num(cx + Math.cos(a) * rad) + ' ' + num(cy + Math.sin(a) * rad));
+    }
+    return 'M' + pts.join('L') + 'Z';
+  }
+
+  /* one body for every capybara so the family stays recognisable */
+  function capyBody(p) {
+    return (
+      '<ellipse cx="14.5" cy="17.5" rx="7" ry="5.6" fill="' + p.ear + '"/>' +
+      '<ellipse cx="49.5" cy="17.5" rx="7" ry="5.6" fill="' + p.ear + '"/>' +
+      '<ellipse cx="14.5" cy="17.5" rx="3.2" ry="2.6" fill="' + p.earIn + '"/>' +
+      '<ellipse cx="49.5" cy="17.5" rx="3.2" ry="2.6" fill="' + p.earIn + '"/>' +
+      '<rect x="4.5" y="12" width="55" height="46" rx="16" fill="' + p.fur + '"/>' +
+      '<rect x="13" y="34" width="38" height="21" rx="10.5" fill="' + p.muzzle + '"/>'
+    );
+  }
+
+  /* close nostrils in the middle of the muzzle (cx 28 / 36), rosy cheeks */
+  function capyNose(p) {
+    return (
+      '<ellipse cx="28" cy="43.5" rx="1.7" ry="1.4" fill="' + p.nose + '"/>' +
+      '<ellipse cx="36" cy="43.5" rx="1.7" ry="1.4" fill="' + p.nose + '"/>'
+    );
+  }
+
+  function capyCheeks(p, strength) {
+    var o = strength || 0.78;
+    return (
+      '<ellipse cx="12.6" cy="37" rx="3.5" ry="2.3" fill="' + p.cheek + '" opacity="' + o + '"/>' +
+      '<ellipse cx="51.4" cy="37" rx="3.5" ry="2.3" fill="' + p.cheek + '" opacity="' + o + '"/>'
+    );
+  }
+
+  function mouthSmile(p) {
+    return (
+      '<path d="M32 45.4v2.1M32 47.5c-1.4 1.8-3.4 1.8-4.6.4M32 47.5c1.4 1.8 3.4 1.8 4.6.4" ' +
+      'stroke="' + p.nose + '" stroke-width="1.5" fill="none" stroke-linecap="round"/>'
+    );
+  }
+
+  function mouthSweet(p) {
+    return '<path d="M28.7 46.2c1.2 2.7 5.9 2.7 7.1 0" stroke="' + p.nose + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+  }
+
+  function mouthSmirk(p) {
+    return '<path d="M29.3 47.2c2.2 2.1 5.6 1.3 7-1.2" stroke="' + p.nose + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+  }
+
+  /* open happy mouth — a little tongue peeks out */
+  function mouthOpen(p) {
+    return (
+      '<path d="M28.1 46.1h7.8a3.9 3.9 0 0 1-7.8 0z" fill="' + p.nose + '"/>' +
+      '<ellipse cx="32" cy="48.1" rx="1.9" ry="1.05" fill="#f09a9c"/>'
+    );
+  }
+
+  function eyesRound(p, r) {
+    r = r || 2.7;
+    return (
+      '<circle cx="20.5" cy="29.5" r="' + r + '" fill="' + p.eye + '"/>' +
+      '<circle cx="43.5" cy="29.5" r="' + r + '" fill="' + p.eye + '"/>' +
+      '<circle cx="' + num(20.5 - r * 0.34) + '" cy="' + num(29.5 - r * 0.34) + '" r="' + num(r * 0.35) + '" fill="#fff8f0"/>' +
+      '<circle cx="' + num(43.5 - r * 0.34) + '" cy="' + num(29.5 - r * 0.34) + '" r="' + num(r * 0.35) + '" fill="#fff8f0"/>'
+    );
+  }
+
+  function eyesSparkle(p) {
+    return (
+      '<circle cx="20.5" cy="29.5" r="3.3" fill="' + p.eye + '"/>' +
+      '<circle cx="43.5" cy="29.5" r="3.3" fill="' + p.eye + '"/>' +
+      '<circle cx="19.4" cy="28.3" r="1.25" fill="#fff8f0"/>' +
+      '<circle cx="42.4" cy="28.3" r="1.25" fill="#fff8f0"/>' +
+      '<circle cx="21.8" cy="30.9" r="0.65" fill="#fff8f0" opacity="0.9"/>' +
+      '<circle cx="44.8" cy="30.9" r="0.65" fill="#fff8f0" opacity="0.9"/>'
+    );
+  }
+
+  function eyesHappy(p) {
+    return (
+      '<path d="M17.3 30.9q3.2-4 6.4 0" stroke="' + p.eye + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+      '<path d="M40.3 30.9q3.2-4 6.4 0" stroke="' + p.eye + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    );
+  }
+
+  function eyesSleepy(p) {
+    return (
+      '<path d="M17.2 29.4q3.3 3.8 6.6 0" stroke="' + p.eye + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+      '<path d="M40.2 29.4q3.3 3.8 6.6 0" stroke="' + p.eye + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    );
+  }
+
+  function eyesWink(p) {
+    return (
+      '<circle cx="20.5" cy="29.5" r="3.15" fill="' + p.eye + '"/>' +
+      '<circle cx="19.4" cy="28.4" r="1.15" fill="#fff8f0"/>' +
+      '<circle cx="21.7" cy="30.8" r="0.6" fill="#fff8f0" opacity="0.9"/>' +
+      '<path d="M40.3 30.7q3.2-3.9 6.4 0" stroke="' + p.eye + '" stroke-width="2.2" fill="none" stroke-linecap="round"/>'
+    );
+  }
+
+  function eyesShades() {
+    return (
+      '<path d="M13.4 28.2l-3.2-1.3M50.6 28.2l3.2-1.3" stroke="#3a2f28" stroke-width="1.5" stroke-linecap="round"/>' +
+      '<rect x="13.4" y="25.3" width="13.7" height="8.7" rx="4.25" fill="#2f2622"/>' +
+      '<rect x="36.9" y="25.3" width="13.7" height="8.7" rx="4.25" fill="#2f2622"/>' +
+      '<rect x="26.2" y="27.7" width="11.6" height="2.1" rx="1.05" fill="#2f2622"/>' +
+      '<path d="M17.1 27.4l4.5 5.3M40.6 27.4l4.5 5.3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.42"/>'
+    );
+  }
+
+  function eyesProud(p) {
+    return (
+      eyesRound(p, 2.7) +
+      '<path d="M16.9 27.2h7.2M40 27.2h7.2" stroke="' + p.fur + '" stroke-width="2.1" stroke-linecap="round"/>'
+    );
+  }
+
+  function eyesTwinkle(p) {
+    return (
+      '<circle cx="20.5" cy="29.5" r="3.4" fill="' + p.eye + '"/>' +
+      '<circle cx="43.5" cy="29.5" r="3.4" fill="' + p.eye + '"/>' +
+      '<path d="' + sparklePath(19.3, 28.3, 2.1) + '" fill="#fff8f0"/>' +
+      '<path d="' + sparklePath(42.3, 28.3, 2.1) + '" fill="#fff8f0"/>'
+    );
+  }
+
+  function propTangerine() {
+    return (
+      '<circle cx="48.5" cy="11" r="6.2" fill="#ff9f43"/>' +
+      '<circle cx="46.8" cy="9.4" r="1.8" fill="#ffc078" opacity="0.9"/>' +
+      '<path d="M48.6 5.1c1.8-2.5 4.4-2.8 6.4-2-.9 2.6-3.3 3.8-6.4 2z" fill="#77b56a"/>'
+    );
+  }
+
+  function propOnsenTowel() {
+    return (
+      '<path d="M21.2 4.2c2.2-1.5-2.2-2.8 0-4.2M29.4 3.8c2.2-1.5-2.2-2.8 0-4.2M38.2 4.2c2.2-1.5-2.2-2.8 0-4.2" stroke="#bccbd8" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.75"/>' +
+      '<g transform="rotate(-7 32 11)">' +
+      '<rect x="17.4" y="13.6" width="29.2" height="4.2" rx="2.1" fill="#8a5c3c" opacity="0.18"/>' +
+      '<rect x="16" y="7.4" width="32" height="9.6" rx="4.4" fill="#f8f0e6" stroke="#e6d8c8" stroke-width="0.9"/>' +
+      '<rect x="17.6" y="4" width="28.8" height="7.6" rx="3.6" fill="#fffdf8" stroke="#ecdccb" stroke-width="0.9"/>' +
+      '<path d="M19.4 11.2h25.2" stroke="#eadccd" stroke-width="1"/>' +
+      '<path d="M19.4 13.4h25.2" stroke="#f4d4c2" stroke-width="1.6"/>' +
+      '<path d="M20.8 8.2h22.4" stroke="#f3e6d8" stroke-width="0.9"/>' +
+      '<path d="M45.4 10.4c2.2.4 3.6 1.9 3.6 4v3.2c0 1.6-1.2 2.7-2.8 2.7h-1.8z" fill="#fffdf8" stroke="#ecdccb" stroke-width="0.85"/>' +
+      '</g>'
+    );
+  }
+
+  function propRibbon() {
+    return (
+      '<ellipse cx="40.6" cy="9.9" rx="6.4" ry="4.2" fill="#ff9dc0" transform="rotate(-19 40.6 9.9)"/>' +
+      '<ellipse cx="52.4" cy="9.9" rx="6.4" ry="4.2" fill="#ff9dc0" transform="rotate(19 52.4 9.9)"/>' +
+      '<ellipse cx="41.2" cy="9.8" rx="3.2" ry="2.1" fill="#ffc6da" transform="rotate(-19 41.2 9.8)"/>' +
+      '<ellipse cx="51.8" cy="9.8" rx="3.2" ry="2.1" fill="#ffc6da" transform="rotate(19 51.8 9.8)"/>' +
+      '<path d="M37.6 7.6c1.4-1.2 3.2-1.6 4.8-1.2M55.4 7.6c-1.4-1.2-3.2-1.6-4.8-1.2" stroke="#ffd3e3" stroke-width="1" fill="none" stroke-linecap="round"/>' +
+      '<path d="M45.4 12.6c-1.5 2.7-3.5 3.9-5.7 3.5 1.3-2.5 3-4 5.7-3.5z" fill="#ff8fb9"/>' +
+      '<path d="M47.7 12.6c1.5 2.7 3.5 3.9 5.7 3.5-1.3-2.5-3-4-5.7-3.5z" fill="#ff8fb9"/>' +
+      '<circle cx="46.5" cy="10.4" r="3" fill="#ff7fae"/>' +
+      '<circle cx="45.4" cy="9.4" r="0.9" fill="#ffd6e5"/>'
+    );
+  }
+
+  function propStrawberry() {
+    return (
+      '<path d="M48.6 19.7c-4.7-2.5-7.7-6.2-7.7-9.4 0-2.6 2-4.5 4.7-4.5 1.6 0 2.6.5 3 .8.4-.3 1.4-.8 3-.8 2.7 0 4.7 1.9 4.7 4.5 0 3.2-3 6.9-7.7 9.4z" fill="#f4566b"/>' +
+      '<path d="M44.4 7.6c-1.4-.6-2.4-1.4-3-2.4 1.8-.3 3.4.2 4.6 1.4z" fill="#f88a99" opacity="0.8"/>' +
+      '<ellipse cx="45.3" cy="10.2" rx="0.75" ry="1.05" fill="#ffe4ad"/>' +
+      '<ellipse cx="51.9" cy="10.2" rx="0.75" ry="1.05" fill="#ffe4ad"/>' +
+      '<ellipse cx="48.6" cy="13.2" rx="0.75" ry="1.05" fill="#ffe4ad"/>' +
+      '<ellipse cx="46.1" cy="15.6" rx="0.65" ry="0.95" fill="#ffe4ad"/>' +
+      '<ellipse cx="51.1" cy="15.6" rx="0.65" ry="0.95" fill="#ffe4ad"/>' +
+      '<path d="M48.6 7.4c-1.8-1-4.4-3-5.4-4.6 2.6-.5 4.6.4 5.4 2.2z" fill="#6fae5f"/>' +
+      '<path d="M48.6 7.4c1.8-1 4.4-3 5.4-4.6-2.6-.5-4.6.4-5.4 2.2z" fill="#6fae5f"/>' +
+      '<path d="M48.6 7.6l-1.9-5.2h3.8z" fill="#5b9a4f"/>' +
+      '<path d="M48.6 3.2c0-1.4.5-2.4 1.3-3.1" stroke="#5b9a4f" stroke-width="1.3" fill="none" stroke-linecap="round"/>'
+    );
+  }
+
+  function propClover() {
+    return (
+      '<circle cx="44.6" cy="6.4" r="3.4" fill="#74c06f"/>' +
+      '<circle cx="52.4" cy="6.4" r="3.4" fill="#74c06f"/>' +
+      '<circle cx="44.6" cy="12.8" r="3.4" fill="#74c06f"/>' +
+      '<circle cx="52.4" cy="12.8" r="3.4" fill="#74c06f"/>' +
+      '<path d="M45.4 5.4l1.9 1.5M51.6 5.4l-1.9 1.5M45.4 13.4l1.9-1.5M51.6 13.4l-1.9-1.5" stroke="#e9f8e6" stroke-width="0.9" stroke-linecap="round" opacity="0.7"/>' +
+      '<circle cx="48.5" cy="9.6" r="1.5" fill="#4f9750"/>' +
+      '<path d="M48.5 14.9c.7 2.3.3 3.8-.6 4.9" stroke="#4f9750" stroke-width="1.4" fill="none" stroke-linecap="round"/>'
+    );
+  }
+
+  function propNightcap() {
+    return (
+      '<path d="M12.8 14.8C13 6.4 20.2 1.2 28.4 1.2c7.4 0 13.6 4 17 10 1 1.8 2.4 2.6 4 2.2l-.4 3h-36.2z" fill="#c9b8ee"/>' +
+      '<path d="M14.8 11.4c1.8-5 7.8-8.2 14.4-8.2 4.8 0 9 1.8 11.6 4.8" stroke="#dccdf7" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.9"/>' +
+      '<circle cx="39.6" cy="9.6" r="0.9" fill="#fff" opacity="0.55"/>' +
+      '<circle cx="33" cy="6.2" r="0.75" fill="#fff" opacity="0.45"/>' +
+      '<circle cx="50.4" cy="12.2" r="3.5" fill="#fffdf8" stroke="#e9dff6" stroke-width="0.8"/>' +
+      '<circle cx="49.2" cy="10.9" r="1.1" fill="#f1e9ff"/>' +
+      '<rect x="11.8" y="12.2" width="35.6" height="6" rx="3" fill="#fffdf8" stroke="#e9dff6" stroke-width="0.8"/>' +
+      '<text x="3.2" y="11.8" font-size="10" font-weight="700" fill="#a3948a" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Z</text>' +
+      '<text x="10.6" y="5.4" font-size="6.8" font-weight="700" fill="#b7a99d" font-family="-apple-system, BlinkMacSystemFont, sans-serif">z</text>'
+    );
+  }
+
+  function propZzz() {
+    return '';
+  }
+
+  function propStarPin() {
+    return (
+      '<path d="' + starPath(48.4, 9.6, 6.2) + '" fill="#ffd766" stroke="#eeb43c" stroke-width="0.8" stroke-linejoin="round"/>' +
+      '<path d="' + starPath(48.4, 9.6, 2.5) + '" fill="#fff3c4" opacity="0.9"/>' +
+      '<circle cx="46.2" cy="7" r="0.75" fill="#fff8dd"/>'
+    );
+  }
+
+  function propCrown() {
+    return (
+      '<path d="M21.2 14.2V6.4l5.4 3.5L32 3.6l5.4 6.3 5.4-3.5v7.8z" fill="#ffd24d" stroke="#e2a52e" stroke-width="0.9" stroke-linejoin="round"/>' +
+      '<rect x="21.2" y="12.4" width="21.6" height="3.6" rx="1.8" fill="#ffc93c" stroke="#e2a52e" stroke-width="0.8"/>' +
+      '<circle cx="32" cy="14.2" r="1.3" fill="#f4566b"/>' +
+      '<circle cx="26" cy="14.2" r="1" fill="#6cb6ff"/>' +
+      '<circle cx="38" cy="14.2" r="1" fill="#7bd389"/>' +
+      '<path d="' + sparklePath(14.6, 6.8, 2.6) + '" fill="#ffe08a"/>' +
+      '<path d="' + sparklePath(49.8, 4.4, 2) + '" fill="#ffe08a" opacity="0.9"/>'
+    );
+  }
+
+  function propSparkles(color, soft) {
+    return (
+      '<path d="' + sparklePath(12.2, 7.4, 3.1) + '" fill="' + color + '"/>' +
+      '<path d="' + sparklePath(56, 5.8, 2.2) + '" fill="' + color + '" opacity="' + (soft || 0.9) + '"/>' +
+      '<path d="' + sparklePath(8.8, 24.4, 1.7) + '" fill="' + color + '" opacity="0.7"/>'
+    );
+  }
+
+  /* a soft rainbow arching over the legendary capybara */
+  function rainbowArch() {
+    var bands = ['#ff8f8f', '#ffb46e', '#ffe27a', '#8fd98a', '#8bc7ff', '#bda6ff'];
+    var out = '';
+    for (var i = 0; i < bands.length; i++) {
+      var r = 19.6 - i * 2.1;
+      out +=
+        '<path d="M' + num(32 - r) + ' 21A' + num(r) + ' ' + num(r) + ' 0 0 1 ' + num(32 + r) + ' 21" ' +
+        'fill="none" stroke="' + bands[i] + '" stroke-width="2.2"/>';
+    }
+    return out;
+  }
+
+  var SKIN_ART = {
+    default: function (p) {
+      return capyBody(p) + capyCheeks(p) + capyNose(p) + mouthSmile(p) + eyesRound(p) + propTangerine();
+    },
+    onsen: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.9) + capyNose(p) + mouthOpen(p) + eyesHappy(p) + propOnsenTowel();
+    },
+    ribbon: function (p) {
+      return capyBody(p) + capyCheeks(p) + capyNose(p) + mouthSweet(p) + eyesSparkle(p) + propRibbon() +
+        '<path d="' + sparklePath(57.4, 13.4, 2) + '" fill="#ffd0e0"/>';
+    },
+    strawberry: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.85) + capyNose(p) + mouthSweet(p) + eyesRound(p) + propStrawberry();
+    },
+    perfect: function (p) {
+      return capyBody(p) + capyCheeks(p) + capyNose(p) + mouthSmirk(p) + eyesShades();
+    },
+    clover: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.85) + capyNose(p) + mouthOpen(p) + eyesWink(p) + propClover() +
+        '<path d="' + sparklePath(13, 5.6, 2.4) + '" fill="#ffe9a8"/>';
+    },
+    sleepy: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.85) + capyNose(p) + mouthSweet(p) + eyesSleepy(p) + propNightcap();
+    },
+    star: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.8) + capyNose(p) + mouthSweet(p) + eyesTwinkle(p) + propStarPin() +
+        propSparkles('#ffe9a8', 0.85);
+    },
+    crown: function (p) {
+      return capyBody(p) + capyCheeks(p) + capyNose(p) + mouthSmirk(p) + eyesProud(p) + propCrown();
+    },
+    rainbow: function (p) {
+      return rainbowArch() + capyBody(p) + capyCheeks(p, 0.95) + capyNose(p) + mouthOpen(p) + eyesSparkle(p) +
+        propSparkles('#fff3c8', 0.95);
+    }
+  };
+
+  var SKIN_PALETTE_OF = { default: 'warm', onsen: 'warm', ribbon: 'warm', strawberry: 'warm', perfect: 'warm', clover: 'warm', sleepy: 'warm', star: 'night', crown: 'sun', rainbow: 'cream' };
+
+  function skinSvg(key) {
+    var draw = SKIN_ART[key] || SKIN_ART.default;
+    var p = SKIN_PALETTES[SKIN_PALETTE_OF[key]] || SKIN_PALETTES.warm;
+    return (
+      '<svg class="capi" data-skin="' + (SKIN_ART[key] ? key : 'default') + '" viewBox="0 0 64 64" ' +
+      'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + draw(p) + '</svg>'
+    );
+  }
+
+  /* the silhouette shown on a card that is still locked */
+  function lockedSkinSvg() {
+    var p = { fur: '#cec2b6', ear: '#b3a597', earIn: '#dcd2c7', muzzle: '#e9e0d6', nose: '#9b8d7d', eye: '#9b8d7d', cheek: '#d6ccc2' };
+    return (
+      '<svg class="capi capi-locked" data-skin="locked" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      capyBody(p) +
+      capyNose(p) +
+      '<path d="M26.9 41.2c0-3.2 2.4-5.6 5.3-5.6 2.9 0 5.1 2.2 5.1 5 0 2.5-2 3.4-3.7 4.5-1.1.7-1.8 1.5-1.8 2.6" ' +
+      'stroke="#8e8070" stroke-width="2.7" fill="none" stroke-linecap="round"/>' +
+      '<circle cx="32" cy="51" r="2" fill="#8e8070"/>' +
+      '</svg>'
+    );
+  }
+
+  /* ------------------------------------------------ 도감 해금 조건 */
+  function dailyDays(s) {
+    var seen = {};
+    Object.keys(s.dailyDone || {}).forEach(function (k) {
+      if (s.dailyDone[k]) seen[k.split(':')[0]] = true;
+    });
+    return Object.keys(seen).length;
+  }
+
+  function sizeClears(s, size) {
+    return Math.max(0, Number((s.sizeClears || {})[String(size)]) || 0);
+  }
+
+  function hardClears(s) {
+    var total = 0;
+    Object.keys(s.sizeClears || {}).forEach(function (k) {
+      if (Number(k) >= 7) total += Math.max(0, Number(s.sizeClears[k]) || 0);
+    });
+    return total;
+  }
+
+  function otherUnlocked(s) {
+    var list = (s.skins && s.skins.unlocked) || [];
+    return list.filter(function (k) {
+      return k !== 'rainbow';
+    }).length;
+  }
+
+  var SKIN_LIST = [
+    { key: 'default', name: '기본 귤 카피바라', cond: '처음부터 함께해요', need: 1, unit: '', progress: function () { return { have: 1, need: 1 }; } },
+    { key: 'onsen', name: '수건 온천 카피바라', cond: '누적 3판 클리어', need: 3, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 3 }; } },
+    { key: 'ribbon', name: '핑크 리본 카피바라', cond: '누적 6판 클리어', need: 6, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 6 }; } },
+    { key: 'strawberry', name: '딸기 카피바라', cond: '누적 10판 클리어', need: 10, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 10 }; } },
+    { key: 'perfect', name: '선글라스 쿨바라', cond: '실수 없이 1판 클리어', need: 1, unit: '판', progress: function (s) { return { have: s.perfectClears || 0, need: 1 }; } },
+    { key: 'clover', name: '네잎클로버 카피바라', cond: '오늘의 퍼즐 3일 클리어', need: 3, unit: '일', progress: function (s) { return { have: dailyDays(s), need: 3 }; } },
+    { key: 'sleepy', name: '꿀잠 수면모자 카피바라', cond: '한 판 10분 넘게 집중해 클리어', need: 1, unit: '판', progress: function (s) { return { have: s.longClears || 0, need: 1 }; } },
+    { key: 'star', name: '별빛 마법 카피바라', cond: '누적 25판 클리어', need: 25, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 25 }; } },
+    { key: 'crown', name: '왕관 마스터바라', cond: '어려운 레벨(7×7 이상) 3판 클리어', need: 3, unit: '판', progress: function (s) { return { have: hardClears(s), need: 3 }; } },
+    { key: 'rainbow', name: '무지개 전설 카피바라', cond: '카피바라 9종을 모두 모으면', need: 9, unit: '종', progress: function (s) { return { have: Math.min(9, otherUnlocked(s)), need: 9 }; } }
+  ];
+  /* SKINS:SOURCE:END */
+
+  var SVG_CACHE = {};
+  var LOCKED_SVG = '';
+
+  function skinSvgCached(key) {
+    if (!SVG_CACHE[key]) SVG_CACHE[key] = skinSvg(key);
+    return SVG_CACHE[key];
+  }
+
+  function lockedSvgCached() {
+    if (!LOCKED_SVG) LOCKED_SVG = lockedSkinSvg();
+    return LOCKED_SVG;
+  }
+
+  function skinByKey(key) {
+    for (var i = 0; i < SKIN_LIST.length; i++) if (SKIN_LIST[i].key === key) return SKIN_LIST[i];
+    return SKIN_LIST[0];
+  }
 
   var X_SVG = '<svg class="xmark" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
   var X_SVG_AUTO = '<svg class="xmark auto" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
@@ -56,7 +436,11 @@
     group: 'easy',
     prefsVersion: 2
   };
-  var DEFAULT_STATS = { cleared: 0, best: {}, streak: 0, lastDaily: null, dailyDone: {} };
+  var DEFAULT_STATS = {
+    cleared: 0, best: {}, streak: 0, lastDaily: null, dailyDone: {},
+    perfectClears: 0, longClears: 0, sizeClears: {},
+    skins: { unlocked: ['default'], active: 'default' }
+  };
 
   var el = {};
   var storedSettings = readJSON(KEY.settings, {});
@@ -71,8 +455,7 @@
   }
   var settings = merge(DEFAULT_SETTINGS, storedSettings);
   var stats = merge(DEFAULT_STATS, readJSON(KEY.stats, {}));
-  if (!stats.best || typeof stats.best !== 'object') stats.best = {};
-  if (!stats.dailyDone || typeof stats.dailyDone !== 'object') stats.dailyDone = {};
+  normalizeStats();
 
   var state = null;
   var blocked = null;
@@ -86,6 +469,7 @@
   var saveHandle = null;
   var activeSheet = null;
   var pendingConfirm = null;
+  var newSkinKeys = [];
   var drag = null;
   /* 자동 순환: a second tap inside this window on the same cell is a double
      tap (capybara attempt), anything later is a fresh single tap */
@@ -129,6 +513,33 @@
     } catch (e) {
       /* private mode or full storage — keep playing */
     }
+  }
+
+  /* saved stats from older versions only hold the basics; fill in what the
+     도감 needs without losing anything the player already earned */
+  function normalizeStats() {
+    if (typeof stats.cleared !== 'number') stats.cleared = 0;
+    if (!stats.best || typeof stats.best !== 'object') stats.best = {};
+    if (!stats.dailyDone || typeof stats.dailyDone !== 'object') stats.dailyDone = {};
+    if (typeof stats.perfectClears !== 'number') stats.perfectClears = 0;
+    if (typeof stats.longClears !== 'number') stats.longClears = 0;
+    if (!stats.sizeClears || typeof stats.sizeClears !== 'object') {
+      stats.sizeClears = {};
+      /* a level with a best time was cleared at least once */
+      Object.keys(stats.best).forEach(function (k) {
+        var diff = E.difficultyByKey(k);
+        if (diff && diff.key === k) stats.sizeClears[String(diff.size)] = 1;
+      });
+    }
+    var skins = stats.skins && typeof stats.skins === 'object' ? stats.skins : {};
+    if (!Array.isArray(skins.unlocked)) skins.unlocked = ['default'];
+    if (skins.unlocked.indexOf('default') === -1) skins.unlocked.unshift('default');
+    skins.unlocked = skins.unlocked.filter(function (k, i, arr) {
+      return !!SKIN_ART[k] && arr.indexOf(k) === i;
+    });
+    if (typeof skins.active !== 'string' || skins.unlocked.indexOf(skins.active) === -1) skins.active = 'default';
+    stats.skins = skins;
+    writeJSON(KEY.stats, stats);
   }
 
   function todayKey() {
@@ -225,6 +636,7 @@
       dailyKey: daily ? dateKey : null,
       board: options.board ? options.board.slice() : new Array(puzzle.size * puzzle.size).fill(0),
       seeds: typeof options.seeds === 'number' ? options.seeds : 3,
+      lost: typeof options.lost === 'number' ? options.lost : 0,
       hints: options.hints || 0,
       elapsedMs: options.elapsedMs || 0,
       runningSince: null,
@@ -321,10 +733,11 @@
   }
 
   function renderBoard() {
+    var capyHtml = skinSvgCached(stats.skins.active);
     for (var i = 0; i < cellEls.length; i++) {
       var v = state.board[i];
       var html = '';
-      if (v === 2) html = CAPY_SVG;
+      if (v === 2) html = capyHtml;
       else if (v === 1) html = X_SVG;
       else if (settings.autoX && blocked[i] && !mutedHints[i]) html = X_SVG_AUTO;
       var cell = cellEls[i];
@@ -528,6 +941,7 @@
 
   function mistake(index) {
     state.seeds = Math.max(0, state.seeds - 1);
+    state.lost = (state.lost || 0) + 1;
     var conflicts = E.conflictingCells(puzzleRef(), capybaras(), index);
     var message = mistakeReason(index, conflicts);
 
@@ -577,6 +991,10 @@
     var time = elapsed();
 
     stats.cleared = (stats.cleared || 0) + 1;
+    if (!state.lost) stats.perfectClears = (stats.perfectClears || 0) + 1;
+    if (time >= 10 * 60 * 1000) stats.longClears = (stats.longClears || 0) + 1;
+    var sizeKey = String(state.size);
+    stats.sizeClears[sizeKey] = (Number(stats.sizeClears[sizeKey]) || 0) + 1;
     var prevBest = stats.best[state.difficulty];
     if (!prevBest || time < prevBest) stats.best[state.difficulty] = time;
 
@@ -595,6 +1013,7 @@
     }
 
     writeJSON(KEY.stats, stats);
+    var freshSkins = evaluateUnlocks();
     updateDailyBadge();
     saveProgressNow();
 
@@ -604,6 +1023,7 @@
     el.winSub.textContent = state.daily
       ? '오늘의 퍼즐을 풀었어요. 카피바라가 귤을 찾았어요 🍊'
       : '카피바라가 귤을 찾았어요 🍊';
+    showWinUnlocks(freshSkins);
     openSheet('sheetWin');
     partyBurst();
     vibrate([12, 40, 12, 40, 24]);
@@ -771,6 +1191,122 @@
     }
   }
 
+  // ---------------------------------------------------------------- 도감
+
+  function isUnlocked(key) {
+    return stats.skins.unlocked.indexOf(key) !== -1;
+  }
+
+  function unlockedCount() {
+    return stats.skins.unlocked.length;
+  }
+
+  /* grant every skin whose condition the saved stats already meet; returns
+     only the ones that are new this time so the win sheet can celebrate */
+  function evaluateUnlocks() {
+    var added = [];
+    SKIN_LIST.forEach(function (skin) {
+      if (isUnlocked(skin.key)) return;
+      var p = skin.progress(stats);
+      if (p.have >= p.need) {
+        stats.skins.unlocked.push(skin.key);
+        added.push(skin.key);
+      }
+    });
+    if (added.length) writeJSON(KEY.stats, stats);
+    updateCollectionBadge();
+    return added;
+  }
+
+  function equipSkin(key) {
+    if (!isUnlocked(key)) return false;
+    stats.skins.active = key;
+    writeJSON(KEY.stats, stats);
+    applySkin();
+    renderCollection();
+    return true;
+  }
+
+  /* the equipped capybara is used on the board, the brand badge, the 카피바라
+     mode button and the win sheet */
+  function applySkin() {
+    var svg = skinSvgCached(stats.skins.active);
+    el.brandBadge.innerHTML = svg;
+    el.winCapi.innerHTML = svg;
+    var placeMode = $('.mode[data-mode="place"]');
+    if (placeMode) placeMode.innerHTML = '<span class="mode-capi">' + svg + '</span>카피바라';
+    if (state) renderBoard();
+    updateCollectionBadge();
+  }
+
+  function updateCollectionBadge() {
+    if (!el.btnCollection || !el.collectionCount) return;
+    el.collectionCount.textContent = unlockedCount() + '/' + SKIN_LIST.length;
+    el.btnCollection.setAttribute('aria-label', '카피바라 도감 ' + unlockedCount() + ' / ' + SKIN_LIST.length);
+    el.btnCollection.classList.toggle('has-new', newSkinKeys.length > 0);
+  }
+
+  function renderCollection() {
+    if (!el.collectGrid) return;
+    var total = SKIN_LIST.length;
+    var have = unlockedCount();
+    el.collectSummary.innerHTML = '수집 현황 <b>' + have + ' / ' + total + '</b> · 누적 클리어 ' + (stats.cleared || 0) + '판';
+    el.collectBarFill.style.width = Math.round((have / total) * 100) + '%';
+    el.collectBar.setAttribute('aria-valuemax', String(total));
+    el.collectBar.setAttribute('aria-valuenow', String(have));
+
+    el.collectGrid.innerHTML = SKIN_LIST.map(function (skin) {
+      var unlocked = isUnlocked(skin.key);
+      var active = stats.skins.active === skin.key;
+      var fresh = newSkinKeys.indexOf(skin.key) !== -1;
+      var p = skin.progress(stats);
+      var ratio = p.need ? Math.min(1, p.have / p.need) : 0;
+      var cls = 'skin-card ' + (unlocked ? 'is-unlocked' : 'is-locked') + (active ? ' is-active' : '');
+      var label = unlocked
+        ? skin.name + (active ? ' 사용 중' : ' 장착하기')
+        : skin.name + ' 잠김, ' + skin.cond;
+      var foot = unlocked
+        ? '<span class="skin-state">' + (active ? '사용 중' : '장착') + '</span>'
+        : '<span class="skin-bar"><i style="width:' + Math.round(ratio * 100) + '%"></i></span>' +
+          '<span class="skin-count">' + Math.min(p.have, p.need) + ' / ' + p.need + (skin.unit || '') + '</span>';
+      return (
+        '<button class="' + cls + '" type="button" data-skin="' + skin.key + '"' +
+        (unlocked ? '' : ' disabled') + ' aria-label="' + label + '"' +
+        (unlocked ? ' aria-pressed="' + (active ? 'true' : 'false') + '"' : '') + '>' +
+        '<span class="skin-art">' + (unlocked ? skinSvgCached(skin.key) : lockedSvgCached()) +
+        (fresh ? '<span class="skin-new">NEW</span>' : '') + '</span>' +
+        '<b class="skin-name">' + skin.name + '</b>' +
+        '<span class="skin-cond">' + (unlocked ? skin.cond + ' ✓' : skin.cond) + '</span>' +
+        '<span class="skin-foot">' + foot + '</span>' +
+        '</button>'
+      );
+    }).join('');
+  }
+
+  function showWinUnlocks(keys) {
+    if (!keys || !keys.length) {
+      el.winUnlock.hidden = true;
+      el.unlockList.innerHTML = '';
+      return;
+    }
+    newSkinKeys = keys.slice();
+    el.unlockList.innerHTML = keys.map(function (key) {
+      var skin = skinByKey(key);
+      return '<span class="unlock-item"><i class="unlock-art">' + skinSvgCached(key) + '</i><b>' + skin.name + '</b></span>';
+    }).join('');
+    el.winUnlock.hidden = false;
+    updateCollectionBadge();
+  }
+
+  function useNewSkin() {
+    var key = newSkinKeys[0];
+    if (!key) return;
+    newSkinKeys = [];
+    closeSheet();
+    if (equipSkin(key)) toast('🎉 ' + skinByKey(key).name + ' 장착!');
+    updateCollectionBadge();
+  }
+
   function renderSettings() {
     el.setCb.checked = !!settings.colorblind;
     el.setAutoX.checked = !!settings.autoX;
@@ -815,6 +1351,7 @@
       s: E.encodeSolution(state.solution),
       board: state.board,
       seeds: state.seeds,
+      lost: state.lost || 0,
       hints: state.hints,
       elapsedMs: elapsed(),
       solved: state.solved,
@@ -850,6 +1387,7 @@
         },
         board: saved.board,
         seeds: saved.seeds,
+        lost: saved.lost,
         hints: saved.hints,
         elapsedMs: saved.elapsedMs,
         solved: saved.solved
@@ -1037,6 +1575,30 @@
       openSheet('sheetSettings');
     });
 
+    el.btnCollection.addEventListener('click', function () {
+      renderCollection();
+      el.collectNote.textContent = '해금한 카피바라를 누르면 바로 장착돼요.';
+      openSheet('sheetCollection');
+    });
+
+    el.collectGrid.addEventListener('click', function (e) {
+      var card = e.target.closest ? e.target.closest('.skin-card') : null;
+      if (!card || card.disabled) return;
+      var key = card.dataset.skin;
+      if (!key || key === stats.skins.active) return;
+      newSkinKeys = newSkinKeys.filter(function (k) {
+        return k !== key;
+      });
+      if (equipSkin(key)) el.collectNote.textContent = skinByKey(key).name + '를 장착했어요!';
+    });
+
+    el.btnUseUnlock.addEventListener('click', useNewSkin);
+    el.btnSeeUnlock.addEventListener('click', function () {
+      renderCollection();
+      el.collectNote.textContent = '방금 해금한 카피바라예요. 눌러서 장착해 보세요!';
+      openSheet('sheetCollection');
+    });
+
     el.btnUndo.addEventListener('click', undo);
     el.btnHint.addEventListener('click', hint);
     el.btnRestart.addEventListener('click', function () {
@@ -1054,6 +1616,7 @@
 
     el.scrim.addEventListener('click', closeSheet);
     el.btnCloseSettings.addEventListener('click', closeSheet);
+    el.btnCloseCollection.addEventListener('click', closeSheet);
 
     el.btnNextPuzzle.addEventListener('click', function () {
       closeSheet();
@@ -1105,11 +1668,14 @@
       renderBoard();
     });
     el.btnReset.addEventListener('click', function () {
+      var keep = { unlocked: stats.skins.unlocked.slice(), active: stats.skins.active };
       stats = JSON.parse(JSON.stringify(DEFAULT_STATS));
+      stats.skins = keep;
       writeJSON(KEY.stats, stats);
       renderSettings();
       updateDailyBadge();
-      toast('기록을 초기화했어요');
+      updateCollectionBadge();
+      toast('기록을 초기화했어요 · 도감은 그대로');
     });
 
     document.addEventListener('keydown', function (e) {
@@ -1217,6 +1783,18 @@
     el.btnCloseSettings = $('#btnCloseSettings');
     el.brandBadge = $('#brandBadge');
     el.winCapi = $('#winCapi');
+    el.btnCollection = $('#btnCollection');
+    el.collectionCount = $('#collectionCount');
+    el.collectSummary = $('#collectSummary');
+    el.collectBar = $('#collectBar');
+    el.collectBarFill = $('#collectBarFill');
+    el.collectGrid = $('#collectGrid');
+    el.collectNote = $('#collectNote');
+    el.btnCloseCollection = $('#btnCloseCollection');
+    el.winUnlock = $('#winUnlock');
+    el.unlockList = $('#unlockList');
+    el.btnUseUnlock = $('#btnUseUnlock');
+    el.btnSeeUnlock = $('#btnSeeUnlock');
   }
 
   function registerSW() {
@@ -1251,10 +1829,8 @@
 
   function boot() {
     cacheElements();
-    el.brandBadge.innerHTML = CAPY_SVG;
-    el.winCapi.innerHTML = CAPY_SVG;
-    var placeMode = $('.mode[data-mode="place"]');
-    if (placeMode) placeMode.innerHTML = '<span class="mode-capi">' + CAPY_SVG + '</span>카피바라';
+    evaluateUnlocks();
+    applySkin();
 
     applyTheme();
     renderModes();
@@ -1291,6 +1867,26 @@
     mistake: mistake,
     hint: hint,
     undo: undo,
-    isSolutionCell: isSolutionCell
+    isSolutionCell: isSolutionCell,
+    skins: SKIN_LIST,
+    unlockedSkins: function () {
+      return stats.skins.unlocked.slice();
+    },
+    activeSkin: function () {
+      return stats.skins.active;
+    },
+    equipSkin: equipSkin,
+    renderCollection: renderCollection,
+    openCollection: function () {
+      renderCollection();
+      openSheet('sheetCollection');
+    },
+    setStats: function (patch) {
+      stats = merge(stats, patch);
+      normalizeStats();
+      evaluateUnlocks();
+      renderSettings();
+      updateCollectionBadge();
+    }
   };
 })();
