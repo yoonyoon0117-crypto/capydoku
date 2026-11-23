@@ -108,6 +108,18 @@ async function cellClick(index) {
   await page.locator(`.cell[data-i="${index}"]`).click({ position: { x: 8, y: 8 } });
 }
 
+async function cellCenter(index) {
+  const box = await page.locator(`.cell[data-i="${index}"]`).boundingBox();
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/* two taps on the same cell within the 350ms double-tap window */
+async function fastDoubleTap(index) {
+  const p = await cellCenter(index);
+  await page.mouse.click(p.x, p.y);
+  await page.mouse.click(p.x, p.y);
+}
+
 async function closeSheetIfOpen() {
   if (await page.locator('#overlay:not([hidden])').count()) {
     await page.locator('#btnRestartCancel').click();
@@ -144,7 +156,12 @@ try {
     await page.locator('.diff').allTextContents(),
     ['초급5×5', '쉬움6×6']
   );
-  step('page loads', 'title, brand, 6×6 board and 3 tangerines');
+  assert.strictEqual(await page.getAttribute('link[rel="stylesheet"]', 'href'), './styles.css?v=4');
+  assert.deepStrictEqual(
+    await page.evaluate(() => [...document.querySelectorAll('script[src]')].map((s) => s.getAttribute('src'))),
+    ['./engine.js?v=4', './app.js?v=4']
+  );
+  step('page loads', 'title, brand, 6×6 board, 3 tangerines, ?v=4 assets');
 
   // 2. Easy / hard group switch
   await page.locator('.level-tab[data-group="hard"]').click();
@@ -155,19 +172,79 @@ try {
   await page.locator('.level-tab[data-group="easy"]').click();
   step('level groups', 'easy 5·6, hard 7·8·9·10');
 
-  // 3. Auto-cycle: empty → × → capybara → empty on a correct cell
+  // 3. 자동 순환: 한 번 탭 = ✕, 천천히 한 번 더 = 지우기, 빠르게 두 번 = 카피바라 시도
   {
     const s0 = await state();
     const idx = s0.solution[0]; // row 0, correct column
     await setMode('auto');
     await cellClick(idx);
-    assert.strictEqual((await state()).board[idx], 1, 'first tap marks ×');
+    assert.strictEqual((await state()).board[idx], 1, 'single tap marks ×');
+    await page.waitForTimeout(450);
     await cellClick(idx);
-    assert.strictEqual((await state()).board[idx], 2, 'second tap places the capybara');
+    assert.strictEqual((await state()).board[idx], 0, 'a slow second tap erases the ×');
+    assert.strictEqual((await state()).seeds, 3, 'erasing the × costs nothing');
+    step('auto single tap', '빈칸 → ✕ → 450ms 뒤 탭 → 빈칸, 귤 3개 그대로');
+
+    await page.waitForTimeout(450);
+    await fastDoubleTap(idx);
+    assert.strictEqual((await state()).board[idx], 2, 'a quick double tap places the capybara');
+    assert.strictEqual((await state()).seeds, 3, 'a correct capybara costs nothing');
+    step('auto double tap', '빠른 두 번 → 카피바라');
+
+    await page.waitForTimeout(400);
     await cellClick(idx);
-    assert.strictEqual((await state()).board[idx], 0, 'third tap clears the cell');
-    assert.strictEqual((await state()).seeds, 3, 'cycling on a correct cell costs nothing');
-    step('auto cycle', '빈칸 → ✕ → 카피바라 → 빈칸');
+    assert.strictEqual((await state()).board[idx], 0, 'a tap on the capybara removes it');
+
+    // the same double tap works when the cell already has an × (from ✕ 메모, a drag, or earlier)
+    const idx2 = s0.size + s0.solution[1];
+    await setMode('memo');
+    await cellClick(idx2);
+    assert.strictEqual((await state()).board[idx2], 1, 'memo ✕ placed');
+    await setMode('auto');
+    await page.waitForTimeout(450);
+    await fastDoubleTap(idx2);
+    assert.strictEqual((await state()).board[idx2], 2, 'double tap on an × places the capybara');
+    await page.waitForTimeout(400);
+    await cellClick(idx2);
+    assert.strictEqual((await state()).board[idx2], 0, 'and it can be removed again');
+    assert.strictEqual((await state()).seeds, 3, 'still three tangerines');
+    step('auto double tap from ×', '✕ 있는 칸 더블탭 → 카피바라');
+  }
+
+  // 3b. 자동 순환 빠른 더블탭이 틀린 칸이면 귤 하나를 잃고 칸은 빈칸으로 돌아간다.
+  {
+    await setMode('auto');
+    const s0 = await state();
+    const wrong = (s0.solution[0] + 1) % s0.size;
+    await cellClick(wrong);
+    assert.strictEqual((await state()).board[wrong], 1, 'first tap marks ×');
+    await page.waitForTimeout(450);
+    await cellClick(wrong);
+    let s1 = await state();
+    assert.strictEqual(s1.board[wrong], 0, 'slow tap erases the × without a capybara attempt');
+    assert.strictEqual(s1.seeds, 3, 'slow tap costs no tangerine');
+
+    await page.waitForTimeout(450);
+    await fastDoubleTap(wrong);
+    s1 = await state();
+    assert.strictEqual(s1.board[wrong], 0, 'a wrong double tap leaves the cell empty');
+    assert.strictEqual(s1.seeds, 2, 'a wrong double tap costs one tangerine');
+    assert.strictEqual(await page.locator('.seed.spent').count(), 1, 'one tangerine shown as spent');
+    assert.ok(
+      await page.locator(`.cell[data-i="${wrong}"].wrong`).count(),
+      'the missed cell flashes the wrong/conflict styling'
+    );
+    const missToast = (await page.locator('#toast').textContent()).trim();
+    assert.ok(missToast.includes('이 칸엔 카피바라가 없어요'), `toast should explain the miss: ${missToast}`);
+    assert.ok(missToast.includes('🍊 -1'), `toast should mention the lost tangerine: ${missToast}`);
+    step('auto wrong double tap', `seeds 3 → 2, toast "${missToast}"`);
+
+    // Restart so the following checks start from three tangerines again.
+    await page.locator('#btnRestart').click();
+    await page.waitForTimeout(250);
+    s1 = await state();
+    assert.strictEqual(s1.seeds, 3, 'restart refills the tangerines');
+    assert.strictEqual(s1.board.filter((v) => v !== 0).length, 0, 'restart clears the board');
   }
 
   // 4. Memo marks by tap
@@ -178,7 +255,8 @@ try {
   await cellClick(0);
   s = await state();
   assert.strictEqual(s.board[0], 0, 'second tap should clear the ×');
-  step('tap to mark ×');
+  assert.strictEqual(s.seeds, 3, 'memo mode never costs a tangerine');
+  step('tap to mark ×', 'memo mode, no tangerine lost');
 
   // 4. Drag to paint × across empty cells
   const box0 = await page.locator('.cell[data-i="0"]').boundingBox();
@@ -347,8 +425,8 @@ try {
       return !cells.includes(2);
     });
     const idx = row * s.size + s.solution[row];
-    await cellClick(idx);
-    await cellClick(idx); // × → capybara
+    await page.waitForTimeout(400);
+    await fastDoubleTap(idx); // ✕ → capybara in one quick double tap
     s = await state();
     assert.strictEqual(s.board[idx], 2, 'capybara placed in an empty row');
     assert.strictEqual(await page.locator('.xmark.auto').count(), 0, 'no faint auto ✕ by default');
@@ -446,6 +524,26 @@ try {
   await page.locator('#btnCloseSettings').click();
   step('colour-blind patterns');
 
+  // 16b. Service worker version and update strategy
+  {
+    const sw = await page.evaluate(async () => {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const res = await fetch('./sw.js', { cache: 'no-store' });
+      return {
+        active: reg && reg.active ? reg.active.state : null,
+        caches: await caches.keys(),
+        text: await res.text()
+      };
+    });
+    assert.ok(sw.caches.includes('capydoku-v4'), `cache should be capydoku-v4: ${sw.caches}`);
+    assert.match(sw.text, /VERSION = 4/, 'sw.js carries version 4');
+    assert.match(sw.text, /self\.skipWaiting\(\)/, 'install takes over immediately');
+    assert.match(sw.text, /self\.clients\.claim\(\)/, 'activate claims the open page');
+    assert.match(sw.text, /function networkFirst/, 'shell files are network-first');
+    assert.match(sw.text, /CORE = \['index\.html', 'styles\.css', 'app\.js', 'engine\.js'\]/, 'core files listed');
+    step('service worker', `${sw.caches.join(',')} · network-first shell · ${sw.active}`);
+  }
+
   // 17. Offline PWA: cached shell still opens without the network
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForTimeout(400);
@@ -458,6 +556,10 @@ try {
   await page.waitForFunction(() => !!window.__capydoku?.state, null, { timeout: 8000 });
   const offlineCells = await page.locator('.cell').count();
   assert.ok(offlineCells >= 25, 'offline shell should render a board');
+  assert.ok(
+    await page.evaluate(() => !!window.CapydokuEngine),
+    'offline reload also gets app.js and engine.js from the cache'
+  );
   await context.setOffline(false);
   offlinePhase = false;
   step('offline PWA', `service worker ${controlled ? 'controlling page' : 'active'}, board rendered offline`);

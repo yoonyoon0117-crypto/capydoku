@@ -84,6 +84,10 @@
   var activeSheet = null;
   var pendingConfirm = null;
   var drag = null;
+  /* 자동 순환: a second tap inside this window on the same cell is a double
+     tap (capybara attempt), anything later is a fresh single tap */
+  var DOUBLE_TAP_MS = 350;
+  var lastTap = null;
 
   // ------------------------------------------------------------ small utils
 
@@ -187,6 +191,7 @@
 
   function startPuzzle(diffKey, daily, options) {
     options = options || {};
+    lastTap = null;
     var diff = E.difficultyByKey(diffKey || settings.difficulty);
     var dateKey = todayKey();
     var seed = options.seed || (daily ? 'daily-' + dateKey + '-' + diff.key : newSeed(diff.key));
@@ -424,31 +429,46 @@
     }
     if (settings.mode === 'place') return handlePlace(index);
     if (settings.mode === 'memo') return toggleMemo(index);
-
-    var v = state.board[index];
-    if (v === 0) {
-      setCell(index, 1);
-      afterChange();
-    } else if (v === 1) {
-      /* a second tap on a memo ✕ must never leave the ✕ stuck: on a correct
-         cell it becomes a capybara (the documented empty → ✕ → 🐹 cycle),
-         anywhere else the tap simply removes the memo mark */
-      if (isSolutionCell(index)) handlePlace(index);
-      else clearMark(index, true);
-    } else {
-      setCell(index, 0);
-      afterChange();
-    }
+    return autoTap(index);
   }
 
-  function clearMark(index, explain) {
-    if (state.board[index] !== 1) return;
-    setCell(index, 0);
-    muteHint(index);
-    afterChange();
-    if (explain) {
-      toast(mistakeReason(index, E.conflictingCells(puzzleRef(), capybaras(), index)));
+  /* 자동 순환: one tap on an empty cell marks it ✕, one tap on ✕ erases the
+     mark (no tangerine), and a quick double tap — on an empty cell or on ✕ —
+     is a capybara attempt. A wrong attempt costs a tangerine and the cell is
+     left empty. One tap on a placed capybara removes it. */
+  function autoTap(index) {
+    var now = Date.now();
+    var value = state.board[index];
+    var quick = !!lastTap && lastTap.index === index && now - lastTap.time < DOUBLE_TAP_MS;
+
+    if (value === 2) {
+      lastTap = null;
+      setCell(index, 0);
+      afterChange();
+      return;
     }
+
+    if (quick) {
+      /* the second tap of a double tap is a capybara attempt. A wrong attempt
+         must leave the cell empty, so any ✕ the first tap left is cleared. */
+      lastTap = null;
+      if (value === 1 && !isSolutionCell(index)) {
+        setCell(index, 0);
+        muteHint(index);
+        afterChange();
+      }
+      handlePlace(index);
+      return;
+    }
+
+    lastTap = { index: index, time: now };
+    if (value === 0) {
+      setCell(index, 1);
+    } else {
+      setCell(index, 0);
+      muteHint(index);
+    }
+    afterChange();
   }
 
   function toggleMemo(index) {
@@ -595,6 +615,7 @@
     var items = entry.items || [];
     for (var i = 0; i < items.length; i++) state.board[items[i].i] = items[i].from;
     state.solved = false;
+    lastTap = null;
     hideWinBanner();
     afterChange();
   }
@@ -611,6 +632,7 @@
     var from = state.board[pick];
     state.board[pick] = 2;
     state.hints += 1;
+    lastTap = null;
     pushHistory([{ i: pick, from: from, to: 2 }]);
     afterChange();
     var cell = cellEls[pick];
@@ -850,6 +872,8 @@
     var finished = drag;
     drag = null;
     if (finished.moved) {
+      /* a drag is not a tap: the next tap starts a fresh single tap */
+      lastTap = null;
       if (finished.items.length) {
         pushHistory(finished.items);
         recomputeBlocked();
@@ -930,6 +954,7 @@
       var btn = e.target.closest('.mode');
       if (!btn) return;
       settings.mode = btn.dataset.mode;
+      lastTap = null;
       writeJSON(KEY.settings, settings);
       renderModes();
     });
@@ -1131,10 +1156,30 @@
   function registerSW() {
     if (!('serviceWorker' in navigator)) return;
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('./sw.js').catch(function () {
-        /* offline support is a bonus, never a blocker */
+    var reg = null;
+    /* iPhone home-screen apps keep the page alive for days, so ask for a new
+       sw.js on every open and whenever the app comes back to the foreground.
+       The worker itself serves the core files network-first, so once it is
+       updated a reload picks up the deployed code. */
+    var checkUpdate = function () {
+      if (!reg) return;
+      reg.update().catch(function () {
+        /* offline is fine — the cached app keeps playing */
       });
+    };
+    window.addEventListener('load', function () {
+      navigator.serviceWorker
+        .register('./sw.js')
+        .then(function (r) {
+          reg = r;
+          checkUpdate();
+        })
+        .catch(function () {
+          /* offline support is a bonus, never a blocker */
+        });
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) checkUpdate();
     });
   }
 
