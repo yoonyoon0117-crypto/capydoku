@@ -486,6 +486,15 @@ try {
     await page.locator('#btnTheme').click();
     await page.waitForTimeout(200);
     step('도감 sheet', 'easy 2/7 · hard 1/7 · equip changes board + mode button');
+
+    // the header badge follows the level switch
+    await page.locator('.level-tab[data-group="hard"]').click();
+    await page.waitForTimeout(150);
+    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '1/7', 'badge switches to the hard book');
+    await page.locator('.level-tab[data-group="easy"]').click();
+    await page.waitForTimeout(150);
+    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '2/7', 'and back to the easy book');
+    step('badge per tier', '5·6 → 2/7, 7~10 → 1/7');
   }
 
   // 11c. 새 해금을 승리 화면에서 바로 쓰기

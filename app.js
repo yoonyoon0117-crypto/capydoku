@@ -735,6 +735,7 @@
     settings.difficulty = diff.key;
     settings.group = diff.group;
     writeJSON(KEY.settings, settings);
+    updateCollectionBadge();
 
     state = {
       difficulty: diff.key,
@@ -1691,6 +1692,7 @@
       settings.group = btn.dataset.group;
       writeJSON(KEY.settings, settings);
       renderDifficulty();
+      updateCollectionBadge();
     });
 
     el.diffs.addEventListener('click', function (e) {
