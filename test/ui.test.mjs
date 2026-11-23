@@ -332,11 +332,43 @@ try {
   await page.locator('#btnSettings').click();
   await page.waitForTimeout(250);
   assert.ok(await page.locator('#sheetSettings:not([hidden])').count());
-  assert.strictEqual(await page.locator('#setAutoX').isChecked(), true);
+  assert.strictEqual(await page.locator('#setAutoX').isChecked(), false, 'auto ✕ hint starts off');
   await page.screenshot({ path: '/workspace/tmp/hamdoku/settings.png' });
   await page.locator('#scrim').click({ position: { x: 10, y: 10 } });
   await page.waitForTimeout(200);
   step('settings sheet');
+
+  // 13b. Auto ✕ hint is off by default; the switch still turns it on
+  {
+    await setMode('auto');
+    s = await state();
+    const row = [...Array(s.size).keys()].find((r) => {
+      const cells = s.board.slice(r * s.size, (r + 1) * s.size);
+      return !cells.includes(2);
+    });
+    const idx = row * s.size + s.solution[row];
+    await cellClick(idx);
+    await cellClick(idx); // × → capybara
+    s = await state();
+    assert.strictEqual(s.board[idx], 2, 'capybara placed in an empty row');
+    assert.strictEqual(await page.locator('.xmark.auto').count(), 0, 'no faint auto ✕ by default');
+    await page.screenshot({ path: '/workspace/tmp/hamdoku/no-auto-x.png' });
+
+    await page.locator('#btnSettings').click();
+    await page.getByText('✕ 자동 메모 표시').click();
+    await page.locator('#btnCloseSettings').click();
+    await page.waitForTimeout(200);
+    assert.strictEqual(await page.evaluate(() => window.__capydoku.settings.autoX), true);
+    assert.ok((await page.locator('.xmark.auto').count()) > 0, 'faint auto ✕ returns when switched on');
+    await page.screenshot({ path: '/workspace/tmp/hamdoku/auto-x-on.png' });
+
+    await page.locator('#btnSettings').click();
+    await page.getByText('✕ 자동 메모 표시').click();
+    await page.locator('#btnCloseSettings').click();
+    await page.waitForTimeout(150);
+    assert.strictEqual(await page.locator('.xmark.auto').count(), 0, 'switching it off clears the hints');
+    step('auto ✕ hint', 'off by default, switch opts in and out');
+  }
 
   // 14. Reload restores the in-progress board
   s = await state();
@@ -348,6 +380,45 @@ try {
   assert.strictEqual(s.size, 8, 'reload restores the 8×8 puzzle');
   assert.strictEqual(s.board.join(','), savedBoard, 'reload restores the board');
   step('reload restore', 'board and level kept');
+
+  // 14b. One-time migration: an install saved under the old default (autoX: true)
+  {
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'capydoku.settings.v1',
+        JSON.stringify({
+          theme: 'light',
+          colorblind: false,
+          autoX: true,
+          mode: 'auto',
+          difficulty: 'hard',
+          group: 'hard'
+        })
+      );
+    });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForFunction(() => !!window.__capydoku?.state);
+    await page.waitForTimeout(250);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('capydoku.settings.v1')));
+    assert.strictEqual(saved.autoX, false, 'an old autoX: true is migrated off');
+    assert.strictEqual(saved.prefsVersion, 2, 'settings carry the new prefs version');
+    assert.strictEqual(await page.evaluate(() => window.__capydoku.settings.autoX), false, 'live setting is off');
+    assert.strictEqual(await page.locator('.xmark.auto').count(), 0, 'no faint auto ✕ after migration');
+
+    // an explicit choice to turn it back on survives later reloads
+    await page.locator('#btnSettings').click();
+    await page.getByText('✕ 자동 메모 표시').click();
+    await page.locator('#btnCloseSettings').click();
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForFunction(() => !!window.__capydoku?.state);
+    await page.waitForTimeout(250);
+    assert.strictEqual(await page.evaluate(() => window.__capydoku.settings.autoX), true, 'opt-in is kept');
+    await page.locator('#btnSettings').click();
+    await page.getByText('✕ 자동 메모 표시').click();
+    await page.locator('#btnCloseSettings').click();
+    await page.waitForTimeout(150);
+    step('settings migration', 'old autoX:true → off once, opt-in kept');
+  }
 
   // 15. Daily puzzle uses a date seed
   await page.locator('#tabDaily').click();

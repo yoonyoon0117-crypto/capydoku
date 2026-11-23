@@ -47,15 +47,26 @@
   var DEFAULT_SETTINGS = {
     theme: 'auto',
     colorblind: false,
-    autoX: true,
+    autoX: false,
     mode: 'auto',
     difficulty: 'easy',
-    group: 'easy'
+    group: 'easy',
+    prefsVersion: 2
   };
   var DEFAULT_STATS = { cleared: 0, best: {}, streak: 0, lastDaily: null, dailyDone: {} };
 
   var el = {};
-  var settings = merge(DEFAULT_SETTINGS, readJSON(KEY.settings, {}));
+  var storedSettings = readJSON(KEY.settings, {});
+  if (!storedSettings || typeof storedSettings !== 'object') storedSettings = {};
+  if (storedSettings.prefsVersion !== DEFAULT_SETTINGS.prefsVersion) {
+    /* v3: the faint auto ✕ hint is off by default now, so a value saved while
+       the old default was on (true) is dropped as well — otherwise an already
+       open browser keeps drawing the hints. The settings switch opts back in. */
+    storedSettings.autoX = false;
+    storedSettings.prefsVersion = DEFAULT_SETTINGS.prefsVersion;
+    writeJSON(KEY.settings, storedSettings);
+  }
+  var settings = merge(DEFAULT_SETTINGS, storedSettings);
   var stats = merge(DEFAULT_STATS, readJSON(KEY.stats, {}));
   if (!stats.best || typeof stats.best !== 'object') stats.best = {};
   if (!stats.dailyDone || typeof stats.dailyDone !== 'object') stats.dailyDone = {};
@@ -998,6 +1009,7 @@
     });
     el.setAutoX.addEventListener('change', function () {
       settings.autoX = el.setAutoX.checked;
+      settings.prefsVersion = DEFAULT_SETTINGS.prefsVersion;
       writeJSON(KEY.settings, settings);
       renderBoard();
     });

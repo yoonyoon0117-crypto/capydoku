@@ -5,7 +5,7 @@
  */
 'use strict';
 
-var CACHE = 'capydoku-v2';
+var CACHE = 'capydoku-v3';
 var ASSETS = [
   './',
   './index.html',
