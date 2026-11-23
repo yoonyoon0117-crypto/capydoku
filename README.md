@@ -94,3 +94,12 @@ scripts/        폴백 퍼즐 풀 빌드 스크립트
 ## 라이선스
 
 개인 사용을 위해 만든 앱입니다. 아이콘과 카피바라 일러스트는 이 프로젝트에서 직접 그린 SVG입니다.
+
+## 배포
+
+- 사이트: <https://yoonyoon0117-crypto.github.io/capydoku/>
+- GitHub Pages 게시 브랜치는 `gh-pages`입니다. 고칠 때는 두 브랜치를 함께 올립니다.
+
+```
+git push origin main main:gh-pages
+```
