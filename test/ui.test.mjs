@@ -156,12 +156,12 @@ try {
     await page.locator('.diff').allTextContents(),
     ['초급5×5', '쉬움6×6']
   );
-  assert.strictEqual(await page.getAttribute('link[rel="stylesheet"]', 'href'), './styles.css?v=4');
+  assert.strictEqual(await page.getAttribute('link[rel="stylesheet"]', 'href'), './styles.css?v=5');
   assert.deepStrictEqual(
     await page.evaluate(() => [...document.querySelectorAll('script[src]')].map((s) => s.getAttribute('src'))),
-    ['./engine.js?v=4', './app.js?v=4']
+    ['./engine.js?v=5', './app.js?v=5']
   );
-  step('page loads', 'title, brand, 6×6 board, 3 tangerines, ?v=4 assets');
+  step('page loads', 'title, brand, 6×6 board, 3 tangerines, ?v=5 assets');
 
   // 2. Easy / hard group switch
   await page.locator('.level-tab[data-group="hard"]').click();
@@ -361,6 +361,25 @@ try {
   assert.ok(s.visibleSheets.includes('sheetWin'), 'win modal should open');
   const winTitle = await page.locator('#winTitle').textContent();
   assert.strictEqual(winTitle, '퍼즐 완성!');
+  const party = await page.evaluate(() => {
+    const layer = document.querySelector('.party');
+    return {
+      layer: !!layer,
+      bits: layer ? layer.querySelectorAll('.party-bit').length : 0,
+      pointer: layer ? getComputedStyle(layer).pointerEvents : null,
+      overlayBefore: getComputedStyle(document.getElementById('overlay'), '::before').content
+    };
+  });
+  assert.ok(party.layer, 'a confetti layer appears on win');
+  assert.ok(party.bits >= 20, `confetti burst should be made of many pieces: ${party.bits}`);
+  assert.strictEqual(party.pointer, 'none', 'confetti never blocks taps');
+  assert.ok(
+    party.overlayBefore === 'none' || party.overlayBefore === 'normal',
+    `the old falling tangerines are gone: ${party.overlayBefore}`
+  );
+  fs.mkdirSync(DOWNLOADS, { recursive: true });
+  await page.screenshot({ path: path.join(DOWNLOADS, 'capydoku-win-confetti.png') });
+  step('win confetti', `${party.bits} pieces burst around the board`);
   const clearedText = await page.evaluate(() => localStorage.getItem('capydoku.stats.v1'));
   assert.ok(clearedText && JSON.parse(clearedText).cleared >= 1, 'cleared count should be saved');
   step('complete 6×6', 'win modal shown');
@@ -369,6 +388,8 @@ try {
   await page.waitForTimeout(200);
   assert.ok(await page.locator('#winBanner:not([hidden])').count(), 'win banner after closing modal');
   assert.ok(!(await state()).visibleSheets.length);
+  await page.waitForTimeout(1700);
+  assert.strictEqual(await page.locator('.party').count(), 0, 'the confetti layer is cleaned up');
   step('win banner after closing');
 
   // 12. 8×8 play screenshot, light and dark
@@ -535,8 +556,8 @@ try {
         text: await res.text()
       };
     });
-    assert.ok(sw.caches.includes('capydoku-v4'), `cache should be capydoku-v4: ${sw.caches}`);
-    assert.match(sw.text, /VERSION = 4/, 'sw.js carries version 4');
+    assert.ok(sw.caches.includes('capydoku-v5'), `cache should be capydoku-v5: ${sw.caches}`);
+    assert.match(sw.text, /VERSION = 5/, 'sw.js carries version 5');
     assert.match(sw.text, /self\.skipWaiting\(\)/, 'install takes over immediately');
     assert.match(sw.text, /self\.clients\.claim\(\)/, 'activate claims the open page');
     assert.match(sw.text, /function networkFirst/, 'shell files are network-first');

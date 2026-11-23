@@ -39,6 +39,9 @@
   var X_SVG = '<svg class="xmark" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
   var X_SVG_AUTO = '<svg class="xmark auto" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 7.5l9 9M16.5 7.5l-9 9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 
+  /* 🎉 win burst — colourful confetti popping out around the finished board */
+  var PARTY_COLORS = ['#ff8a5b', '#ffd166', '#7bd389', '#6cb6ff', '#ff9ecb', '#b79bff'];
+
   var KEY = {
     settings: 'capydoku.settings.v1',
     stats: 'capydoku.stats.v1',
@@ -601,9 +604,73 @@
     el.winSub.textContent = state.daily
       ? '오늘의 퍼즐을 풀었어요. 카피바라가 귤을 찾았어요 🍊'
       : '카피바라가 귤을 찾았어요 🍊';
-    el.overlay.classList.add('celebrate');
     openSheet('sheetWin');
+    partyBurst();
     vibrate([12, 40, 12, 40, 24]);
+  }
+
+  /* Confetti pops outward around the board square (🎉, not tangerines falling
+     from the sky). It is a short, pointer-transparent layer above the scrim and
+     below the win sheet, removed as soon as the pieces have landed. */
+  function partyBurst() {
+    if (!el.board || !el.overlay) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var previous = document.querySelector('.party');
+    if (previous) previous.remove();
+
+    var rect = el.board.getBoundingClientRect();
+    if (!rect.width) return;
+    var layer = document.createElement('div');
+    layer.className = 'party';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.style.left = rect.left + 'px';
+    layer.style.top = rect.top + 'px';
+    layer.style.width = rect.width + 'px';
+    layer.style.height = rect.height + 'px';
+
+    var count = 46;
+    var reach = Math.max(110, rect.width * 0.52);
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < count; i++) {
+      var piece = document.createElement('i');
+      var sparkle = i === 5 || i === 17 || i === 29 || i === 41;
+      /* a fountain around the square: most pieces arc up and out over the
+         board, the rest shoot sideways, none of them drop from the sky */
+      var angle;
+      if (i < 32) {
+        angle = -Math.PI * (0.05 + (0.9 * i) / 32) + (Math.random() - 0.5) * 0.16;
+      } else {
+        angle = (i % 2 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.7;
+      }
+      var distance = reach * (0.72 + Math.random() * 0.62);
+      if (sparkle) {
+        piece.className = 'party-bit sparkle';
+        piece.textContent = '✦';
+        piece.style.color = i % 2 ? '#ffe08a' : '#ff9ecb';
+        piece.style.fontSize = 15 + Math.random() * 7 + 'px';
+      } else {
+        piece.className = 'party-bit' + (i % 3 === 0 ? ' round' : '');
+        piece.style.background = PARTY_COLORS[i % PARTY_COLORS.length];
+        piece.style.width = 5 + Math.random() * 6 + 'px';
+        piece.style.height = 8 + Math.random() * 6 + 'px';
+      }
+      piece.style.setProperty('--dx', Math.round(Math.cos(angle) * distance) + 'px');
+      piece.style.setProperty('--dy', Math.round(Math.sin(angle) * distance) + 'px');
+      piece.style.setProperty('--rot', Math.round(Math.random() * 620 - 310) + 'deg');
+      piece.style.animationDelay = (Math.random() * 0.22).toFixed(2) + 's';
+      piece.style.animationDuration = (1.05 + Math.random() * 0.45).toFixed(2) + 's';
+      frag.appendChild(piece);
+    }
+    layer.appendChild(frag);
+
+    /* under the sheets so the modal text and buttons stay crisp */
+    var sheet = el.overlay.querySelector('.sheet');
+    if (sheet) el.overlay.insertBefore(layer, sheet);
+    else el.overlay.appendChild(layer);
+
+    setTimeout(function () {
+      if (layer.parentNode) layer.parentNode.removeChild(layer);
+    }, 1900);
   }
 
   function undo() {
@@ -672,7 +739,6 @@
 
   function closeSheet() {
     el.overlay.hidden = true;
-    el.overlay.classList.remove('celebrate');
     $$('.sheet').forEach(function (sheet) {
       sheet.hidden = true;
     });

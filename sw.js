@@ -12,7 +12,7 @@
  */
 'use strict';
 
-var VERSION = 4;
+var VERSION = 5;
 var CACHE = 'capydoku-v' + VERSION;
 var CORE = ['index.html', 'styles.css', 'app.js', 'engine.js'];
 var ASSETS = [

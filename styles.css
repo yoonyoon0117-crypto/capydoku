@@ -984,27 +984,51 @@ html[data-theme="dark"] .toast {
   box-shadow: 0 10px 22px rgba(224, 122, 74, 0.25);
 }
 
-.overlay.celebrate::before,
-.overlay.celebrate::after {
-  content: "🍊";
+/* 🎉 win burst: confetti pops outward around the board square */
+.party {
   position: absolute;
-  top: -30px;
-  left: 18%;
-  font-size: 22px;
-  animation: fall 2.4s linear infinite;
+  pointer-events: none;
+  overflow: visible;
 }
 
-.overlay.celebrate::after {
-  content: "🌿";
-  left: 72%;
-  animation-delay: 0.6s;
-  animation-duration: 2.8s;
+.party-bit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 13px;
+  margin: -6px 0 0 -4px;
+  border-radius: 2px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: partyPop;
+  animation-timing-function: cubic-bezier(0.16, 0.72, 0.3, 1);
+  animation-fill-mode: forwards;
 }
 
-@keyframes fall {
-  0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
-  12% { opacity: 1; }
-  100% { transform: translateY(92dvh) rotate(220deg); opacity: 0; }
+.party-bit.round {
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+}
+
+.party-bit.sparkle {
+  width: auto;
+  height: auto;
+  margin: -11px 0 0 -8px;
+  background: none;
+  border-radius: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@keyframes partyPop {
+  0% { transform: translate3d(0, 0, 0) scale(0.35) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  62% { transform: translate3d(calc(var(--dx) * 0.82), calc(var(--dy) * 0.82), 0) scale(1) rotate(calc(var(--rot) * 0.55)); opacity: 1; }
+  100% { transform: translate3d(var(--dx), calc(var(--dy) + 42px), 0) scale(0.9) rotate(var(--rot)); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
