@@ -73,6 +73,7 @@ html[data-theme="dark"] {
 html,
 body {
   height: 100%;
+  touch-action: manipulation;
 }
 
 body {
@@ -86,6 +87,7 @@ body {
   user-select: none;
   -webkit-text-size-adjust: 100%;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 body::before {
@@ -112,6 +114,9 @@ button {
   color: inherit;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .app {
@@ -403,13 +408,17 @@ html[data-theme="dark"] .primary {
   width: var(--board-size);
   height: var(--board-size);
   display: grid;
-  grid-template-columns: repeat(var(--n, 6), 1fr);
+  grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--n, 6), minmax(0, 1fr));
   border: 2.5px solid var(--region-line);
   border-radius: 16px;
   overflow: hidden;
   background: var(--surface-2);
   box-shadow: var(--shadow);
-  touch-action: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
   position: relative;
 }
 
@@ -418,11 +427,18 @@ html[data-theme="dark"] .primary {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
   border-top: 1px solid var(--grid-soft);
   border-left: 1px solid var(--grid-soft);
   background-color: var(--surface);
   transition: background-color 0.2s ease;
   overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .cell.edge-t { border-top: 2px solid var(--region-line); }
@@ -482,7 +498,8 @@ html[data-theme="dark"] .primary {
 
 .capi {
   width: 84%;
-  height: 84%;
+  height: auto;
+  aspect-ratio: 1 / 1;
   display: block;
   animation: popIn 0.22s cubic-bezier(0.3, 1.4, 0.5, 1);
   filter: drop-shadow(0 2px 2px rgba(80, 50, 30, 0.18));
@@ -496,7 +513,8 @@ html[data-theme="dark"] .primary {
 
 .xmark {
   width: 42%;
-  height: 42%;
+  height: auto;
+  aspect-ratio: 1 / 1;
   color: var(--mark);
   opacity: 0.85;
 }

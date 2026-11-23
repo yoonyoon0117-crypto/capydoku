@@ -21,8 +21,8 @@
     '<ellipse cx="49.5" cy="17.5" rx="3.2" ry="2.6" fill="#c08c6b"/>',
     '<rect x="4.5" y="12" width="55" height="46" rx="16" fill="#b8865f"/>',
     '<rect x="13" y="34" width="38" height="21" rx="10.5" fill="#ecd2b2"/>',
-    '<ellipse cx="25" cy="43.5" rx="1.7" ry="1.4" fill="#7a5540"/>',
-    '<ellipse cx="39" cy="43.5" rx="1.7" ry="1.4" fill="#7a5540"/>',
+    '<ellipse cx="28" cy="43.5" rx="1.7" ry="1.4" fill="#7a5540"/>',
+    '<ellipse cx="36" cy="43.5" rx="1.7" ry="1.4" fill="#7a5540"/>',
     '<path d="M32 45.5v2.2M32 47.7c-1.4 1.8-3.4 1.8-4.6.4M32 47.7c1.4 1.8 3.4 1.8 4.6.4" stroke="#7a5540" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
     '<circle cx="20.5" cy="29.5" r="2.7" fill="#3f2a1e"/>',
     '<circle cx="43.5" cy="29.5" r="2.7" fill="#3f2a1e"/>',
@@ -63,6 +63,10 @@
   var state = null;
   var blocked = null;
   var cellEls = [];
+  /* cells whose auto ✕ was dismissed by the player; cleared whenever the
+     placed capybaras change, since the hint is then about something else */
+  var mutedHints = Object.create(null);
+  var lastCapySig = '';
   var timerHandle = null;
   var toastHandle = null;
   var saveHandle = null;
@@ -284,7 +288,17 @@
   }
 
   function recomputeBlocked() {
-    blocked = E.blockedCells(puzzleRef(), capybaras());
+    var capy = capybaras();
+    var sig = capy.join(',');
+    if (sig !== lastCapySig) {
+      lastCapySig = sig;
+      mutedHints = Object.create(null);
+    }
+    blocked = E.blockedCells(puzzleRef(), capy);
+  }
+
+  function muteHint(index) {
+    if (blocked && blocked[index]) mutedHints[index] = true;
   }
 
   function renderBoard() {
@@ -293,7 +307,7 @@
       var html = '';
       if (v === 2) html = CAPY_SVG;
       else if (v === 1) html = X_SVG;
-      else if (settings.autoX && blocked[i]) html = X_SVG_AUTO;
+      else if (settings.autoX && blocked[i] && !mutedHints[i]) html = X_SVG_AUTO;
       var cell = cellEls[i];
       if (cell.__html !== html) {
         cell.innerHTML = html;
@@ -373,6 +387,18 @@
     return { i: index, from: 0, to: 1 };
   }
 
+  /* a memo drag paints ✕ across empty cells, or erases ✕ across marked ones
+     depending on the cell the gesture started on */
+  function dragCell(index) {
+    if (drag && drag.erasing) {
+      if (state.board[index] !== 1) return null;
+      state.board[index] = 0;
+      muteHint(index);
+      return { i: index, from: 1, to: 0 };
+    }
+    return markCell(index);
+  }
+
   function afterChange() {
     recomputeBlocked();
     renderStatus();
@@ -393,20 +419,35 @@
       setCell(index, 1);
       afterChange();
     } else if (v === 1) {
-      handlePlace(index);
+      /* a second tap on a memo ✕ must never leave the ✕ stuck: on a correct
+         cell it becomes a capybara (the documented empty → ✕ → 🐹 cycle),
+         anywhere else the tap simply removes the memo mark */
+      if (isSolutionCell(index)) handlePlace(index);
+      else clearMark(index, true);
     } else {
       setCell(index, 0);
       afterChange();
     }
   }
 
+  function clearMark(index, explain) {
+    if (state.board[index] !== 1) return;
+    setCell(index, 0);
+    muteHint(index);
+    afterChange();
+    if (explain) {
+      toast(mistakeReason(index, E.conflictingCells(puzzleRef(), capybaras(), index)));
+    }
+  }
+
   function toggleMemo(index) {
-    if (state.board[index] === 2) {
-      setCell(index, 0);
+    if (state.board[index] === 0) {
+      setCell(index, 1);
     } else if (state.board[index] === 1) {
       setCell(index, 0);
+      muteHint(index);
     } else {
-      setCell(index, 1);
+      setCell(index, 0);
     }
     afterChange();
   }
@@ -755,6 +796,7 @@
         settings.mode === 'memo'
           ? state.board[index] !== 2
           : settings.mode === 'auto' && state.board[index] === 0,
+      erasing: settings.mode === 'memo' && state.board[index] === 1,
       items: [],
       pointerId: e.pointerId
     };
@@ -775,7 +817,7 @@
       if (Math.sqrt(dx * dx + dy * dy) < 12) return;
       drag.moved = true;
       if (drag.painting) {
-        var first = markCell(drag.start);
+        var first = dragCell(drag.start);
         if (first) drag.items.push(first);
         renderBoard();
       }
@@ -784,7 +826,7 @@
     if (index < 0 || index === drag.last) return;
     drag.last = index;
     if (drag.painting && settings.mode !== "place") {
-      var item = markCell(index);
+      var item = dragCell(index);
       if (item) {
         drag.items.push(item);
         renderBoard();
