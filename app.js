@@ -249,10 +249,6 @@
     );
   }
 
-  function propZzz() {
-    return '';
-  }
-
   function propStarPin() {
     return (
       '<path d="' + starPath(48.4, 9.6, 6.2) + '" fill="#ffd766" stroke="#eeb43c" stroke-width="0.8" stroke-linejoin="round"/>' +
