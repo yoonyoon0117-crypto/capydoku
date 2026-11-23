@@ -156,20 +156,20 @@ try {
     await page.locator('.diff').allTextContents(),
     ['초급5×5', '쉬움6×6']
   );
-  assert.strictEqual(await page.getAttribute('link[rel="stylesheet"]', 'href'), './styles.css?v=6');
+  assert.strictEqual(await page.getAttribute('link[rel="stylesheet"]', 'href'), './styles.css?v=7');
   assert.deepStrictEqual(
     await page.evaluate(() => [...document.querySelectorAll('script[src]')].map((s) => s.getAttribute('src'))),
-    ['./engine.js?v=6', './app.js?v=6']
+    ['./engine.js?v=7', './app.js?v=7']
   );
-  step('page loads', 'title, brand, 6×6 board, 3 tangerines, ?v=6 assets');
+  step('page loads', 'title, brand, 6×6 board, 3 tangerines, ?v=7 assets');
 
   // 1b. 도감 버튼은 해금 수를 배지로 보여준다
   {
     assert.strictEqual(await page.locator('#btnCollection').count(), 1, 'header has the 도감 button');
-    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '1/10', 'one capybara is unlocked from the start');
+    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '1/7', 'one capybara is unlocked in the easy book from the start');
     assert.ok(await page.locator('#brandBadge .capi').count(), 'brand badge shows the active capybara');
     assert.ok(await page.locator('.mode[data-mode="place"] .capi[data-skin="default"]').count(), 'the mode button uses the active skin');
-    step('도감 header button', 'trophy + 1/10 badge');
+    step('도감 header button', 'trophy + 1/7 badge');
   }
 
   // 2. Easy / hard group switch
@@ -393,17 +393,19 @@ try {
   assert.ok(clearedText && JSON.parse(clearedText).cleared >= 1, 'cleared count should be saved');
   step('complete 6×6', 'win modal shown');
 
-  // 11a. 실수 없이 클리어한 첫 판은 선글라스 쿨바라를 해금한다
+  // 11a. 실수 없이 클리어한 첫 쉬운 판은 쉬운 도감의 네잎클로버를 해금한다
   {
     assert.ok(await page.locator('#winUnlock:not([hidden])').count(), 'the win sheet celebrates a new capybara');
     const names = await page.locator('.unlock-item b').allTextContents();
-    assert.deepStrictEqual(names, ['선글라스 쿨바라'], `a flawless first clear unlocks the sunglasses: ${names}`);
-    assert.strictEqual(await page.locator('.unlock-art .capi[data-skin="perfect"]').count(), 1);
+    assert.deepStrictEqual(names, ['네잎클로버 카피바라'], `a flawless easy clear unlocks the easy-book clover: ${names}`);
+    assert.strictEqual(await page.locator('.unlock-art .capi[data-skin="clover"]').count(), 1);
     assert.ok(await page.locator('#btnUseUnlock').count() && await page.locator('#btnSeeUnlock').count(), 'both unlock actions are offered');
     const statsNow = await page.evaluate(() => JSON.parse(localStorage.getItem('capydoku.stats.v1')));
     assert.strictEqual(statsNow.perfectClears, 1, 'perfect clear is recorded');
+    assert.deepStrictEqual(statsNow.perfectByTier, { easy: 1, hard: 0 }, 'the flawless clear counts for the easy book only');
     assert.deepStrictEqual(statsNow.sizeClears, { 6: 1 }, 'size clear history is recorded');
-    assert.ok(statsNow.skins.unlocked.includes('perfect'), 'the skin is saved as unlocked');
+    assert.ok(statsNow.skins.unlocked.includes('clover'), 'the skin is saved as unlocked');
+    assert.ok(!statsNow.skins.unlocked.includes('perfect'), 'a hard-tier skin is not handed out by an easy win');
     step('win unlock banner', names.join(', '));
   }
 
@@ -415,35 +417,61 @@ try {
   assert.strictEqual(await page.locator('.party').count(), 0, 'the confetti layer is cleaned up');
   step('win banner after closing');
 
-  // 11b. 도감: 잠금·해금 상태를 보여주고, 눌러서 바로 장착한다
+  // 11b. 도감: 쉬운/어려운 두 탭이 각자의 진행률과 카드 목록을 보여주고, 눌러서 바로 장착한다
   {
-    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '2/10', 'badge reflects the unlocked skin');
+    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '2/7', 'badge counts the tier being played');
     await page.locator('#btnCollection').click();
     await page.waitForTimeout(350);
     assert.ok(await page.locator('#sheetCollection:not([hidden])').count(), '도감 sheet opens');
-    assert.strictEqual(await page.locator('.skin-card').count(), 10, 'all ten capybaras are listed');
+    assert.strictEqual(await page.locator('.collect-tab').count(), 2, 'the sheet has two tier tabs');
+    assert.ok(await page.locator('.collect-tab[data-tier="easy"].active').count(), 'it opens on the tier being played (easy)');
+    assert.strictEqual(await page.locator('.skin-card').count(), 7, 'the easy book lists seven capybaras');
     assert.strictEqual(await page.locator('.skin-card.is-unlocked').count(), 2);
-    assert.strictEqual(await page.locator('.skin-card.is-locked').count(), 8);
-    assert.strictEqual(await page.locator('.skin-card.is-locked svg[data-skin="locked"]').count(), 8, 'locked cards show the gray ? silhouette');
+    assert.strictEqual(await page.locator('.skin-card.is-locked').count(), 5);
+    assert.strictEqual(await page.locator('.skin-card.is-locked svg[data-skin="locked"]').count(), 5, 'locked cards show the gray ? silhouette');
+    assert.strictEqual(await page.locator('.skin-card[data-skin="perfect"]').count(), 0, 'hard-only skins stay out of the easy book');
+    const easySummary = await page.locator('#collectSummary').textContent();
+    assert.ok(easySummary.includes('2 / 7') && easySummary.includes('쉬운 레벨 클리어 1판'), `easy summary: ${easySummary}`);
     const conds = await page.locator('.skin-card.is-locked .skin-cond').allTextContents();
-    for (const wanted of ['누적 3판 클리어', '누적 25판 클리어', '오늘의 퍼즐 3일 클리어', '카피바라 9종을 모두 모으면']) {
-      assert.ok(conds.includes(wanted), `locked card should state "${wanted}": ${conds.join(' | ')}`);
+    for (const wanted of ['쉬운 레벨 2판 클리어', '쉬운 레벨 4판 클리어', '쉬운 레벨 6판 클리어', '쉬운 레벨 10판 클리어', '쉬운 도감 6종을 모두 모으면']) {
+      assert.ok(conds.includes(wanted), `an easy card should state "${wanted}": ${conds.join(' | ')}`);
     }
-    assert.strictEqual(await page.locator('.skin-card.is-locked .skin-count').count(), 8, 'locked cards show progress counts');
+    assert.strictEqual(await page.locator('.skin-card.is-locked .skin-count').count(), 5, 'locked cards show progress counts');
     assert.strictEqual(await page.locator('.skin-card[data-skin="default"].is-active').count(), 1, '기본 is in use');
-    assert.ok(await page.locator('.skin-card[data-skin="perfect"] .skin-new').count(), 'the freshly unlocked skin is flagged NEW');
+    assert.ok(await page.locator('.skin-card[data-skin="clover"] .skin-new').count(), 'the freshly unlocked skin is flagged NEW');
     assert.strictEqual((await page.locator('#collectBar').getAttribute('aria-valuenow')), '2');
+    assert.strictEqual((await page.locator('#collectBar').getAttribute('aria-valuemax')), '7');
     fs.mkdirSync(DOWNLOADS, { recursive: true });
-    await page.screenshot({ path: path.join(DOWNLOADS, 'capydoku-collection.png') });
+    await page.screenshot({ path: path.join(DOWNLOADS, 'capydoku-collection-split.png') });
 
-    await page.locator('.skin-card[data-skin="perfect"]').click();
+    // 🔥 the hard tab is a separate book with its own progress
+    await page.locator('.collect-tab[data-tier="hard"]').click();
+    await page.waitForTimeout(250);
+    assert.ok(await page.locator('.collect-tab[data-tier="hard"].active').count(), 'the hard tab becomes active');
+    assert.strictEqual(await page.locator('.skin-card').count(), 7, 'the hard book lists seven capybaras');
+    assert.strictEqual(await page.locator('.skin-card.is-unlocked').count(), 1, 'only 기본 has been earned in the hard book');
+    assert.strictEqual(await page.locator('.skin-card[data-skin="clover"]').count(), 0, 'easy-only skins stay out of the hard book');
+    const hardSummary = await page.locator('#collectSummary').textContent();
+    assert.ok(hardSummary.includes('1 / 7') && hardSummary.includes('어려운 레벨 클리어 0판'), `hard summary: ${hardSummary}`);
+    const hardConds = await page.locator('.skin-card.is-locked .skin-cond').allTextContents();
+    for (const wanted of ['어려운 레벨 1판 클리어', '어려운 레벨 3판 클리어', '어려운 오늘의 퍼즐 1일', '9×9 또는 10×10 클리어', '어려운 도감 6종을 모두 모으면']) {
+      assert.ok(hardConds.includes(wanted), `a hard card should state "${wanted}": ${hardConds.join(' | ')}`);
+    }
+    assert.strictEqual((await page.locator('#collectBar').getAttribute('aria-valuenow')), '1');
+    assert.strictEqual((await page.locator('#collectBar').getAttribute('aria-valuemax')), '7');
+    await page.screenshot({ path: path.join(DOWNLOADS, 'capydoku-collection-split-hard.png') });
+
+    // back to 🧸 and equip the new capybara
+    await page.locator('.collect-tab[data-tier="easy"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('.skin-card[data-skin="clover"]').click();
     await page.waitForTimeout(300);
-    assert.strictEqual(await page.evaluate(() => window.__capydoku.activeSkin()), 'perfect');
-    assert.ok(await page.locator('.skin-card[data-skin="perfect"].is-active').count(), 'the card shows 사용 중');
-    assert.ok(await page.locator('.skin-card[data-skin="perfect"] .skin-state').textContent() === '사용 중');
-    assert.strictEqual(await page.locator('#board .capi[data-skin="perfect"]').count(), 6, 'the board capybaras switch at once');
-    assert.strictEqual(await page.locator('.mode[data-mode="place"] .capi[data-skin="perfect"]').count(), 1, 'the mode button switches too');
-    assert.strictEqual(await page.locator('#brandBadge .capi[data-skin="perfect"]').count(), 1, 'the brand badge switches too');
+    assert.strictEqual(await page.evaluate(() => window.__capydoku.activeSkin()), 'clover');
+    assert.ok(await page.locator('.skin-card[data-skin="clover"].is-active').count(), 'the card shows 사용 중');
+    assert.ok(await page.locator('.skin-card[data-skin="clover"] .skin-state').textContent() === '사용 중');
+    assert.strictEqual(await page.locator('#board .capi[data-skin="clover"]').count(), 6, 'the board capybaras switch at once');
+    assert.strictEqual(await page.locator('.mode[data-mode="place"] .capi[data-skin="clover"]').count(), 1, 'the mode button switches too');
+    assert.strictEqual(await page.locator('#brandBadge .capi[data-skin="clover"]').count(), 1, 'the brand badge switches too');
     await page.screenshot({ path: '/workspace/tmp/hamdoku/collection-equipped.png' });
 
     // dark mode of the same sheet
@@ -457,7 +485,7 @@ try {
     await page.locator('#btnCloseCollection').click();
     await page.locator('#btnTheme').click();
     await page.waitForTimeout(200);
-    step('도감 sheet', '8 locked · equip changes board + mode button');
+    step('도감 sheet', 'easy 2/7 · hard 1/7 · equip changes board + mode button');
   }
 
   // 11c. 새 해금을 승리 화면에서 바로 쓰기
@@ -477,13 +505,17 @@ try {
     assert.ok(names.includes('수건 온천 카피바라'), `third clear unlocks the onsen towel: ${names}`);
     await page.screenshot({ path: '/workspace/tmp/hamdoku/win-unlock.png' });
     await page.locator('#btnUseUnlock').click();
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(400);
     assert.ok(await page.locator('#sheetWin').isHidden(), '바로 쓰기 closes the win sheet');
     assert.strictEqual(await page.evaluate(() => window.__capydoku.activeSkin()), 'onsen');
-    assert.strictEqual(await page.locator('#board .capi[data-skin="onsen"]').count(), 5, 'the new capybara is on the board right away');
+    assert.strictEqual(await page.evaluate(() => window.__capydoku.state.solved), false, 'a fresh puzzle starts right away');
+    assert.strictEqual(await page.locator('.cell').count(), 25, 'the next puzzle keeps the same 5×5 level');
+    assert.strictEqual(await page.locator('#board .capi').count(), 0, 'the new board is empty');
+    assert.strictEqual(await page.locator('.mode[data-mode="place"] .capi[data-skin="onsen"]').count(), 1, 'the new capybara is worn right away');
+    assert.strictEqual(await page.locator('#brandBadge .capi[data-skin="onsen"]').count(), 1, 'the brand badge uses it too');
     assert.ok((await page.locator('#toast').textContent()).includes('수건 온천 카피바라'), 'a toast confirms the equip');
-    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '3/10');
-    step('바로 쓰기', '3rd clear → onsen towel equipped');
+    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '3/7');
+    step('바로 쓰기', '3rd easy clear → onsen equipped + next 5×5 dealt');
   }
 
   // 11d. 기록 초기화는 도감을 지우지 않는다
@@ -494,11 +526,49 @@ try {
     await page.waitForTimeout(200);
     assert.strictEqual(await page.evaluate(() => window.__capydoku.stats.cleared), 0, 'stats are reset');
     const kept = await page.evaluate(() => window.__capydoku.unlockedSkins());
-    assert.ok(kept.includes('onsen') && kept.includes('perfect'), `unlocked capybaras survive a reset: ${kept}`);
+    assert.ok(kept.includes('onsen') && kept.includes('clover'), `unlocked capybaras survive a reset: ${kept}`);
     assert.strictEqual(await page.evaluate(() => window.__capydoku.activeSkin()), 'onsen', 'the equipped capybara is kept');
     await page.locator('#btnCloseSettings').click();
     await page.waitForTimeout(200);
     step('reset keeps 도감', kept.length + ' skins kept');
+  }
+
+  // 11e. 🔥 어려운 레벨 도감은 어려운 판에서만 열린다
+  {
+    await pickDifficulty('hard', 'normal');
+    s = await state();
+    assert.strictEqual(s.size, 7, 'normal is a 7×7');
+    await setMode('place');
+    for (let row = 0; row < s.size; row++) {
+      await cellClick(row * s.size + s.solution[row]);
+    }
+    await page.waitForFunction(
+      () => window.__capydoku.state.solved && !document.getElementById('sheetWin').hidden,
+      null,
+      { timeout: 4000 }
+    );
+    await page.waitForTimeout(500);
+    const names = await page.locator('.unlock-item b').allTextContents();
+    assert.deepStrictEqual(
+      names,
+      ['선글라스 쿨바라', '별빛 마법 카피바라'],
+      `a flawless 7×7 unlocks the hard book: ${names}`
+    );
+    const statsNow = await page.evaluate(() => JSON.parse(localStorage.getItem('capydoku.stats.v1')));
+    assert.deepStrictEqual(statsNow.perfectByTier, { easy: 0, hard: 1 }, 'the hard perfect clear is counted for the hard book');
+    assert.deepStrictEqual(statsNow.sizeClears, { 7: 1 }, 'the 7×7 clear is recorded');
+    assert.strictEqual((await page.locator('#collectionCount').textContent()).trim(), '3/7', 'the badge follows the hard tier now');
+
+    await page.locator('#btnSeeUnlock').click();
+    await page.waitForTimeout(350);
+    assert.ok(await page.locator('.collect-tab[data-tier="hard"].active').count(), '도감에서 보기 opens the hard book');
+    assert.strictEqual(await page.locator('.skin-card.is-unlocked').count(), 3, 'default + sunglasses + starlight are in the hard book');
+    const hardSummary = await page.locator('#collectSummary').textContent();
+    assert.ok(hardSummary.includes('3 / 7') && hardSummary.includes('어려운 레벨 클리어 1판'), `hard summary: ${hardSummary}`);
+    await page.screenshot({ path: '/workspace/tmp/hamdoku/collection-hard-unlock.png' });
+    await page.locator('#btnCloseCollection').click();
+    await page.waitForTimeout(200);
+    step('어려운 도감 해금', names.join(', '));
   }
 
   // 12. 8×8 play screenshot, light and dark
@@ -667,8 +737,8 @@ try {
         text: await res.text()
       };
     });
-    assert.ok(sw.caches.includes('capydoku-v6'), `cache should be capydoku-v6: ${sw.caches}`);
-    assert.match(sw.text, /VERSION = 6/, 'sw.js carries version 6');
+    assert.ok(sw.caches.includes('capydoku-v7'), `cache should be capydoku-v7: ${sw.caches}`);
+    assert.match(sw.text, /VERSION = 7/, 'sw.js carries version 7');
     assert.match(sw.text, /self\.skipWaiting\(\)/, 'install takes over immediately');
     assert.match(sw.text, /self\.clients\.claim\(\)/, 'activate claims the open page');
     assert.match(sw.text, /function networkFirst/, 'shell files are network-first');

@@ -14,7 +14,7 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <link rel="icon" href="./icons/icon-192.png">
-  <link rel="stylesheet" href="./styles.css?v=6">
+  <link rel="stylesheet" href="./styles.css?v=7">
 </head>
 <body>
   <div class="app" id="app">
@@ -29,7 +29,7 @@
       <div class="top-actions">
         <button class="icon-btn icon-btn-badge" id="btnCollection" type="button" aria-label="카피바라 도감">
           <span aria-hidden="true">🏆</span>
-          <span class="count-badge" id="collectionCount">1/10</span>
+          <span class="count-badge" id="collectionCount">1/7</span>
         </button>
         <button class="icon-btn" id="btnTheme" type="button" aria-label="다크 모드 전환">🌙</button>
         <button class="icon-btn" id="btnSettings" type="button" aria-label="설정">⚙️</button>
@@ -140,8 +140,12 @@
       <div class="sheet-grab" aria-hidden="true"></div>
       <button class="sheet-close" id="btnCloseCollection" type="button" aria-label="닫기">✕</button>
       <h2 id="collectionTitle">🏆 카피바라 도감</h2>
-      <p class="collect-summary" id="collectSummary">수집 현황 <b>1 / 10</b> · 누적 클리어 0판</p>
-      <div class="collect-bar" id="collectBar" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="1" aria-label="도감 수집 진행">
+      <div class="collect-tabs" id="collectTabs" role="tablist" aria-label="도감 레벨">
+        <button class="collect-tab active" type="button" role="tab" data-tier="easy" aria-selected="true">🧸 쉬운 레벨</button>
+        <button class="collect-tab" type="button" role="tab" data-tier="hard" aria-selected="false" tabindex="-1">🔥 어려운 레벨</button>
+      </div>
+      <p class="collect-summary" id="collectSummary">수집 현황 <b>1 / 7</b> · 쉬운 레벨 클리어 0판</p>
+      <div class="collect-bar" id="collectBar" role="progressbar" aria-valuemin="0" aria-valuemax="7" aria-valuenow="1" aria-label="쉬운 레벨 도감 수집 진행">
         <i id="collectBarFill"></i>
       </div>
       <div class="collect-grid" id="collectGrid"></div>
@@ -168,7 +172,7 @@
     </section>
   </div>
 
-  <script src="./engine.js?v=6"></script>
-  <script src="./app.js?v=6"></script>
+  <script src="./engine.js?v=7"></script>
+  <script src="./app.js?v=7"></script>
 </body>
 </html>

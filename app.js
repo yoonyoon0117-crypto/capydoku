@@ -269,6 +269,49 @@
     );
   }
 
+  /* a tiny chick perched on the capybara's head (easy 도감) */
+  function propChick() {
+    return (
+      '<ellipse cx="46.6" cy="9.6" rx="8.2" ry="6.7" fill="#ffd964"/>' +
+      '<path d="M46.6 3c.2-1.7 1.4-2.7 3-2.6-.2 1.7-1.4 2.8-3 2.6z" fill="#ffc94f"/>' +
+      '<path d="M51.4 7.2c2.6.4 4 2.1 2.7 4.6-.9 1.7-2.6 2.4-4.4 2.1 1.6-.6 2.4-1.7 2.4-3.1 0-1.5-.3-2.7-.7-3.6z" fill="#ffe58f"/>' +
+      '<circle cx="43.6" cy="7.4" r="1.05" fill="#4a3a24"/>' +
+      '<path d="M38.4 9.6l-3.6 1.1 3.6 1.6z" fill="#f19a3f"/>' +
+      '<path d="M43.9 16.1v-1.9M49.1 16.1v-1.9" stroke="#f0a83c" stroke-width="1.5" stroke-linecap="round"/>'
+    );
+  }
+
+  /* a pink daisy pinned over one ear (easy 도감) */
+  function propFlower() {
+    var petals = '';
+    for (var i = 0; i < 6; i++) {
+      petals += '<ellipse cx="0" cy="-4.3" rx="2.5" ry="3.3" fill="#ffb3cf" transform="rotate(' + i * 60 + ')"/>';
+    }
+    return (
+      '<path d="M17.4 13.4c-.2 2.6-1.4 4.2-3.2 5" stroke="#6fae5f" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+      '<path d="M15.2 16.8c-1.6 1.3-2 2.8-1.4 4.2 1.7-.6 2.6-1.8 2.6-3.4z" fill="#77b56a"/>' +
+      '<g transform="translate(17.6 7.6)">' + petals +
+      '<circle r="2.5" fill="#ffd766"/>' +
+      '<circle cx="-0.7" cy="-0.8" r="0.9" fill="#fff3c4"/>' +
+      '<circle cx="0.8" cy="0.5" r="0.5" fill="#f0b93c"/>' +
+      '</g>' +
+      '<path d="M20 3c1.8-1.4 3.4-1.2 4.2 0-1.6 1.3-3 1.3-4.2 0z" fill="#77b56a"/>'
+    );
+  }
+
+  /* a round golden moon with soft craters and night sparkles (hard 도감) */
+  function propMoon() {
+    return (
+      '<circle cx="53" cy="9.4" r="7.7" fill="#ffe6a3"/>' +
+      '<circle cx="50.4" cy="6.6" r="1.7" fill="#f6d489" opacity="0.9"/>' +
+      '<circle cx="55.8" cy="11.2" r="2.2" fill="#f6d489" opacity="0.85"/>' +
+      '<circle cx="51.2" cy="12" r="1.1" fill="#f6d489" opacity="0.8"/>' +
+      '<path d="' + sparklePath(42.6, 5, 2.4) + '" fill="#fff0bc"/>' +
+      '<path d="' + sparklePath(60.6, 20.4, 1.8) + '" fill="#fff0bc" opacity="0.9"/>' +
+      '<circle cx="44.4" cy="14.6" r="0.9" fill="#fff0bc" opacity="0.8"/>'
+    );
+  }
+
   function propSparkles(color, soft) {
     return (
       '<path d="' + sparklePath(12.2, 7.4, 3.1) + '" fill="' + color + '"/>' +
@@ -307,6 +350,15 @@
     perfect: function (p) {
       return capyBody(p) + capyCheeks(p) + capyNose(p) + mouthSmirk(p) + eyesShades();
     },
+    chick: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.9) + capyNose(p) + mouthSweet(p) + eyesSparkle(p) + propChick();
+    },
+    flower: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.9) + capyNose(p) + mouthOpen(p) + eyesHappy(p) + propFlower();
+    },
+    moon: function (p) {
+      return capyBody(p) + capyCheeks(p, 0.8) + capyNose(p) + mouthSmile(p) + eyesTwinkle(p) + propMoon();
+    },
     clover: function (p) {
       return capyBody(p) + capyCheeks(p, 0.85) + capyNose(p) + mouthOpen(p) + eyesWink(p) + propClover() +
         '<path d="' + sparklePath(13, 5.6, 2.4) + '" fill="#ffe9a8"/>';
@@ -327,7 +379,7 @@
     }
   };
 
-  var SKIN_PALETTE_OF = { default: 'warm', onsen: 'warm', ribbon: 'warm', strawberry: 'warm', perfect: 'warm', clover: 'warm', sleepy: 'warm', star: 'night', crown: 'sun', rainbow: 'cream' };
+  var SKIN_PALETTE_OF = { default: 'warm', onsen: 'warm', ribbon: 'warm', strawberry: 'warm', perfect: 'warm', clover: 'warm', chick: 'sun', flower: 'cream', sleepy: 'warm', moon: 'night', star: 'night', crown: 'sun', rainbow: 'cream' };
 
   function skinSvg(key) {
     var draw = SKIN_ART[key] || SKIN_ART.default;
@@ -353,45 +405,82 @@
   }
 
   /* ------------------------------------------------ 도감 해금 조건 */
-  function dailyDays(s) {
-    var seen = {};
-    Object.keys(s.dailyDone || {}).forEach(function (k) {
-      if (s.dailyDone[k]) seen[k.split(':')[0]] = true;
-    });
-    return Object.keys(seen).length;
+  /* Two books: 🧸 쉬운 레벨 (5×5·6×6) and 🔥 어려운 레벨 (7×7–10×10). Each
+     skin reads only its own tier's clears, so a beginner fills one book and a
+     veteran the other. sizeClears is keyed by board size, so every earlier
+     clear sorts itself into the right book without a migration table. */
+  function sizeTier(size) {
+    return Number(size) >= 7 ? 'hard' : 'easy';
   }
 
   function sizeClears(s, size) {
     return Math.max(0, Number((s.sizeClears || {})[String(size)]) || 0);
   }
 
-  function hardClears(s) {
+  function tierClears(s, tier) {
     var total = 0;
     Object.keys(s.sizeClears || {}).forEach(function (k) {
-      if (Number(k) >= 7) total += Math.max(0, Number(s.sizeClears[k]) || 0);
+      if (sizeTier(k) === tier) total += Math.max(0, Number(s.sizeClears[k]) || 0);
     });
     return total;
   }
 
-  function otherUnlocked(s) {
-    var list = (s.skins && s.skins.unlocked) || [];
-    return list.filter(function (k) {
-      return k !== 'rainbow';
+  function tierOfDaily(key) {
+    var parts = String(key).split(':');
+    parts.shift();
+    return sizeTier(E.difficultyByKey(parts.join(':')).size);
+  }
+
+  function tierDailyDays(s, tier) {
+    var seen = {};
+    Object.keys(s.dailyDone || {}).forEach(function (k) {
+      if (s.dailyDone[k] && tierOfDaily(k) === tier) seen[k.split(':')[0]] = true;
+    });
+    return Object.keys(seen).length;
+  }
+
+  function tierPerfect(s, tier) {
+    var p = s.perfectByTier || {};
+    return Math.max(0, Number(p[tier]) || 0);
+  }
+
+  function bigClears(s) {
+    return sizeClears(s, 9) + sizeClears(s, 10);
+  }
+
+  /* how many skins of this tier are already in the book (the capstone aside) */
+  function tierOwned(s, tier, exceptKey) {
+    var unlocked = (s.skins && s.skins.unlocked) || [];
+    return SKIN_LIST.filter(function (skin) {
+      return skin.tiers.indexOf(tier) !== -1 && skin.key !== exceptKey && unlocked.indexOf(skin.key) !== -1;
     }).length;
   }
 
   var SKIN_LIST = [
-    { key: 'default', name: '기본 귤 카피바라', cond: '처음부터 함께해요', need: 1, unit: '', progress: function () { return { have: 1, need: 1 }; } },
-    { key: 'onsen', name: '수건 온천 카피바라', cond: '누적 3판 클리어', need: 3, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 3 }; } },
-    { key: 'ribbon', name: '핑크 리본 카피바라', cond: '누적 6판 클리어', need: 6, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 6 }; } },
-    { key: 'strawberry', name: '딸기 카피바라', cond: '누적 10판 클리어', need: 10, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 10 }; } },
-    { key: 'perfect', name: '선글라스 쿨바라', cond: '실수 없이 1판 클리어', need: 1, unit: '판', progress: function (s) { return { have: s.perfectClears || 0, need: 1 }; } },
-    { key: 'clover', name: '네잎클로버 카피바라', cond: '오늘의 퍼즐 3일 클리어', need: 3, unit: '일', progress: function (s) { return { have: dailyDays(s), need: 3 }; } },
-    { key: 'sleepy', name: '꿀잠 수면모자 카피바라', cond: '한 판 10분 넘게 집중해 클리어', need: 1, unit: '판', progress: function (s) { return { have: s.longClears || 0, need: 1 }; } },
-    { key: 'star', name: '별빛 마법 카피바라', cond: '누적 25판 클리어', need: 25, unit: '판', progress: function (s) { return { have: s.cleared || 0, need: 25 }; } },
-    { key: 'crown', name: '왕관 마스터바라', cond: '어려운 레벨(7×7 이상) 3판 클리어', need: 3, unit: '판', progress: function (s) { return { have: hardClears(s), need: 3 }; } },
-    { key: 'rainbow', name: '무지개 전설 카피바라', cond: '카피바라 9종을 모두 모으면', need: 9, unit: '종', progress: function (s) { return { have: Math.min(9, otherUnlocked(s)), need: 9 }; } }
+    /* 🧸 쉬운 레벨 도감 — cute, kid-friendly milestones */
+    { key: 'default', tiers: ['easy', 'hard'], name: '기본 귤 카피바라', cond: '처음부터 함께해요', need: 1, unit: '', progress: function () { return { have: 1, need: 1 }; } },
+    { key: 'onsen', tiers: ['easy'], name: '수건 온천 카피바라', cond: '쉬운 레벨 2판 클리어', need: 2, unit: '판', progress: function (s) { return { have: tierClears(s, 'easy'), need: 2 }; } },
+    { key: 'ribbon', tiers: ['easy'], name: '핑크 리본 카피바라', cond: '쉬운 레벨 4판 클리어', need: 4, unit: '판', progress: function (s) { return { have: tierClears(s, 'easy'), need: 4 }; } },
+    { key: 'strawberry', tiers: ['easy'], name: '딸기 카피바라', cond: '쉬운 레벨 6판 클리어', need: 6, unit: '판', progress: function (s) { return { have: tierClears(s, 'easy'), need: 6 }; } },
+    { key: 'clover', tiers: ['easy'], name: '네잎클로버 카피바라', cond: '쉬운 레벨 실수 없이 1판', need: 1, unit: '판', progress: function (s) { return { have: tierPerfect(s, 'easy'), need: 1 }; } },
+    { key: 'chick', tiers: ['easy'], name: '꼬마 병아리 카피바라', cond: '쉬운 레벨 10판 클리어', need: 10, unit: '판', progress: function (s) { return { have: tierClears(s, 'easy'), need: 10 }; } },
+    { key: 'flower', tiers: ['easy'], name: '꽃 카피바라', cond: '쉬운 도감 6종을 모두 모으면', need: 6, unit: '종', progress: function (s) { return { have: Math.min(6, tierOwned(s, 'easy', 'flower')), need: 6 }; } },
+
+    /* 🔥 어려운 레벨 도감 — cool, prestigious milestones */
+    { key: 'perfect', tiers: ['hard'], name: '선글라스 쿨바라', cond: '어려운 레벨 1판 클리어', need: 1, unit: '판', progress: function (s) { return { have: tierClears(s, 'hard'), need: 1 }; } },
+    { key: 'sleepy', tiers: ['hard'], name: '꿀잠 수면모자 카피바라', cond: '어려운 레벨 3판 클리어', need: 3, unit: '판', progress: function (s) { return { have: tierClears(s, 'hard'), need: 3 }; } },
+    { key: 'moon', tiers: ['hard'], name: '달빛 산책 카피바라', cond: '어려운 오늘의 퍼즐 1일', need: 1, unit: '일', progress: function (s) { return { have: tierDailyDays(s, 'hard'), need: 1 }; } },
+    { key: 'star', tiers: ['hard'], name: '별빛 마법 카피바라', cond: '어려운 레벨 실수 없이 1판', need: 1, unit: '판', progress: function (s) { return { have: tierPerfect(s, 'hard'), need: 1 }; } },
+    { key: 'crown', tiers: ['hard'], name: '왕관 마스터바라', cond: '9×9 또는 10×10 클리어', need: 1, unit: '판', progress: function (s) { return { have: Math.min(1, bigClears(s)), need: 1 }; } },
+    { key: 'rainbow', tiers: ['hard'], name: '무지개 전설 카피바라', cond: '어려운 도감 6종을 모두 모으면', need: 6, unit: '종', progress: function (s) { return { have: Math.min(6, tierOwned(s, 'hard', 'rainbow')), need: 6 }; } }
   ];
+
+  var TIER_LIST = { easy: [], hard: [] };
+  SKIN_LIST.forEach(function (skin) {
+    skin.tiers.forEach(function (tier) {
+      TIER_LIST[tier].push(skin);
+    });
+  });
   /* SKINS:SOURCE:END */
 
   var SVG_CACHE = {};
@@ -432,11 +521,16 @@
     group: 'easy',
     prefsVersion: 2
   };
-  var DEFAULT_STATS = {
-    cleared: 0, best: {}, streak: 0, lastDaily: null, dailyDone: {},
-    perfectClears: 0, longClears: 0, sizeClears: {},
-    skins: { unlocked: ['default'], active: 'default' }
-  };
+  /* a fresh object every time: the same nested objects must never be shared
+     between a save and the defaults, or a reset would bring old clears back */
+  function DEFAULT_STATS() {
+    return {
+      cleared: 0, best: {}, streak: 0, lastDaily: null, dailyDone: {},
+      perfectClears: 0, longClears: 0, sizeClears: {},
+      perfectByTier: { easy: 0, hard: 0 },
+      skins: { unlocked: ['default'], active: 'default' }
+    };
+  }
 
   var el = {};
   var storedSettings = readJSON(KEY.settings, {});
@@ -450,7 +544,9 @@
     writeJSON(KEY.settings, storedSettings);
   }
   var settings = merge(DEFAULT_SETTINGS, storedSettings);
-  var stats = merge(DEFAULT_STATS, readJSON(KEY.stats, {}));
+  var savedStats = readJSON(KEY.stats, {});
+  migrateTierStats(savedStats);
+  var stats = merge(DEFAULT_STATS(), savedStats);
   normalizeStats();
 
   var state = null;
@@ -466,6 +562,7 @@
   var activeSheet = null;
   var pendingConfirm = null;
   var newSkinKeys = [];
+  var collectionTier = 'easy';
   var drag = null;
   /* 자동 순환: a second tap inside this window on the same cell is a double
      tap (capybara attempt), anything later is a fresh single tap */
@@ -511,6 +608,19 @@
     }
   }
 
+  /* a v6 save holds one perfectClears total. It cannot be split exactly, so
+     the old count is credited to the tiers the player has actually cleared
+     (easy first, capped by that tier's clears). Every earlier size clear
+     sorts itself into its tier through sizeClears with no extra work. */
+  function migrateTierStats(raw) {
+    if (!raw || typeof raw !== 'object') return;
+    if (raw.perfectByTier && typeof raw.perfectByTier === 'object') return;
+    var legacy = Math.max(0, Number(raw.perfectClears) || 0);
+    var easy = Math.min(legacy, tierClears(raw, 'easy'));
+    var hard = Math.min(legacy - easy, tierClears(raw, 'hard'));
+    raw.perfectByTier = { easy: easy, hard: hard };
+  }
+
   /* saved stats from older versions only hold the basics; fill in what the
      도감 needs without losing anything the player already earned */
   function normalizeStats() {
@@ -519,6 +629,10 @@
     if (!stats.dailyDone || typeof stats.dailyDone !== 'object') stats.dailyDone = {};
     if (typeof stats.perfectClears !== 'number') stats.perfectClears = 0;
     if (typeof stats.longClears !== 'number') stats.longClears = 0;
+    var perfectByTier = stats.perfectByTier && typeof stats.perfectByTier === 'object' ? stats.perfectByTier : {};
+    perfectByTier.easy = Math.max(0, Number(perfectByTier.easy) || 0);
+    perfectByTier.hard = Math.max(0, Number(perfectByTier.hard) || 0);
+    stats.perfectByTier = perfectByTier;
     if (!stats.sizeClears || typeof stats.sizeClears !== 'object') {
       stats.sizeClears = {};
       /* a level with a best time was cleared at least once */
@@ -987,7 +1101,11 @@
     var time = elapsed();
 
     stats.cleared = (stats.cleared || 0) + 1;
-    if (!state.lost) stats.perfectClears = (stats.perfectClears || 0) + 1;
+    var tier = E.difficultyByKey(state.difficulty).group === 'hard' ? 'hard' : 'easy';
+    if (!state.lost) {
+      stats.perfectClears = (stats.perfectClears || 0) + 1;
+      stats.perfectByTier[tier] = (Number(stats.perfectByTier[tier]) || 0) + 1;
+    }
     if (time >= 10 * 60 * 1000) stats.longClears = (stats.longClears || 0) + 1;
     var sizeKey = String(state.size);
     stats.sizeClears[sizeKey] = (Number(stats.sizeClears[sizeKey]) || 0) + 1;
@@ -1009,7 +1127,9 @@
     }
 
     writeJSON(KEY.stats, stats);
-    var freshSkins = evaluateUnlocks();
+    /* only the book that was just cleared can hand out a new capybara */
+    collectionTier = tier;
+    var freshSkins = evaluateUnlocks(tier);
     updateDailyBadge();
     saveProgressNow();
 
@@ -1193,15 +1313,24 @@
     return stats.skins.unlocked.indexOf(key) !== -1;
   }
 
-  function unlockedCount() {
-    return stats.skins.unlocked.length;
+  function skinsForTier(tier) {
+    return TIER_LIST[tier === 'hard' ? 'hard' : 'easy'];
   }
 
-  /* grant every skin whose condition the saved stats already meet; returns
-     only the ones that are new this time so the win sheet can celebrate */
-  function evaluateUnlocks() {
+  function tierHave(tier) {
+    return skinsForTier(tier).filter(function (skin) {
+      return isUnlocked(skin.key);
+    }).length;
+  }
+
+  /* grant every skin whose condition the saved stats already meet. A tier
+     limits the check to that one book (the win sheet after a 쉬운/어려운
+     clear); without one both books are filled in at start-up. Returns only
+     the keys that are new this time so the win sheet can celebrate them. */
+  function evaluateUnlocks(tier) {
     var added = [];
-    SKIN_LIST.forEach(function (skin) {
+    var list = tier ? skinsForTier(tier) : SKIN_LIST;
+    list.forEach(function (skin) {
       if (isUnlocked(skin.key)) return;
       var p = skin.progress(stats);
       if (p.have >= p.need) {
@@ -1237,21 +1366,44 @@
 
   function updateCollectionBadge() {
     if (!el.btnCollection || !el.collectionCount) return;
-    el.collectionCount.textContent = unlockedCount() + '/' + SKIN_LIST.length;
-    el.btnCollection.setAttribute('aria-label', '카피바라 도감 ' + unlockedCount() + ' / ' + SKIN_LIST.length);
-    el.btnCollection.classList.toggle('has-new', newSkinKeys.length > 0);
+    var tier = settings.group === 'hard' ? 'hard' : 'easy';
+    var total = skinsForTier(tier).length;
+    var have = tierHave(tier);
+    el.collectionCount.textContent = have + '/' + total;
+    el.btnCollection.setAttribute('aria-label', '카피바라 도감 · ' + (tier === 'easy' ? '쉬운' : '어려운') + ' 레벨 ' + have + ' / ' + total);
+    var hasNew = newSkinKeys.some(function (key) {
+      return skinsForTier(tier).some(function (skin) {
+        return skin.key === key;
+      });
+    });
+    el.btnCollection.classList.toggle('has-new', hasNew);
   }
 
   function renderCollection() {
     if (!el.collectGrid) return;
-    var total = SKIN_LIST.length;
-    var have = unlockedCount();
-    el.collectSummary.innerHTML = '수집 현황 <b>' + have + ' / ' + total + '</b> · 누적 클리어 ' + (stats.cleared || 0) + '판';
+    var tier = collectionTier === 'hard' ? 'hard' : 'easy';
+    var list = skinsForTier(tier);
+    var total = list.length;
+    var have = tierHave(tier);
+    var label = tier === 'easy' ? '쉬운' : '어려운';
+
+    if (el.collectTabs) {
+      $$('.collect-tab', el.collectTabs).forEach(function (btn) {
+        var on = btn.dataset.tier === tier;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        btn.tabIndex = on ? 0 : -1;
+      });
+    }
+
+    el.collectSummary.innerHTML = '수집 현황 <b>' + have + ' / ' + total + '</b> · ' + label + ' 레벨 클리어 ' + tierClears(stats, tier) + '판';
     el.collectBarFill.style.width = Math.round((have / total) * 100) + '%';
     el.collectBar.setAttribute('aria-valuemax', String(total));
     el.collectBar.setAttribute('aria-valuenow', String(have));
+    el.collectBar.setAttribute('aria-label', label + ' 레벨 도감 수집 진행');
+    el.collectGrid.dataset.tier = tier;
 
-    el.collectGrid.innerHTML = SKIN_LIST.map(function (skin) {
+    el.collectGrid.innerHTML = list.map(function (skin) {
       var unlocked = isUnlocked(skin.key);
       var active = stats.skins.active === skin.key;
       var fresh = newSkinKeys.indexOf(skin.key) !== -1;
@@ -1294,12 +1446,16 @@
     updateCollectionBadge();
   }
 
+  /* 바로 쓰기: wear the new capybara and deal the next puzzle right away, so
+     the win sheet never leaves a finished board with no way forward */
   function useNewSkin() {
     var key = newSkinKeys[0];
     if (!key) return;
     newSkinKeys = [];
     closeSheet();
-    if (equipSkin(key)) toast('🎉 ' + skinByKey(key).name + ' 장착!');
+    var equipped = equipSkin(key);
+    startPuzzle(settings.difficulty, false);
+    if (equipped) toast('🎉 ' + skinByKey(key).name + ' 장착!');
     updateCollectionBadge();
   }
 
@@ -1572,9 +1728,20 @@
     });
 
     el.btnCollection.addEventListener('click', function () {
+      /* open on the tier the player is playing right now */
+      collectionTier = settings.group === 'hard' ? 'hard' : 'easy';
       renderCollection();
       el.collectNote.textContent = '해금한 카피바라를 누르면 바로 장착돼요.';
       openSheet('sheetCollection');
+    });
+
+    el.collectTabs.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('.collect-tab') : null;
+      if (!btn) return;
+      var tier = btn.dataset.tier === 'hard' ? 'hard' : 'easy';
+      if (tier === collectionTier) return;
+      collectionTier = tier;
+      renderCollection();
     });
 
     el.collectGrid.addEventListener('click', function (e) {
@@ -1594,7 +1761,6 @@
       el.collectNote.textContent = '방금 해금한 카피바라예요. 눌러서 장착해 보세요!';
       openSheet('sheetCollection');
     });
-
     el.btnUndo.addEventListener('click', undo);
     el.btnHint.addEventListener('click', hint);
     el.btnRestart.addEventListener('click', function () {
@@ -1665,7 +1831,7 @@
     });
     el.btnReset.addEventListener('click', function () {
       var keep = { unlocked: stats.skins.unlocked.slice(), active: stats.skins.active };
-      stats = JSON.parse(JSON.stringify(DEFAULT_STATS));
+      stats = DEFAULT_STATS();
       stats.skins = keep;
       writeJSON(KEY.stats, stats);
       renderSettings();
@@ -1782,6 +1948,7 @@
     el.btnCollection = $('#btnCollection');
     el.collectionCount = $('#collectionCount');
     el.collectSummary = $('#collectSummary');
+    el.collectTabs = $('#collectTabs');
     el.collectBar = $('#collectBar');
     el.collectBarFill = $('#collectBarFill');
     el.collectGrid = $('#collectGrid');
@@ -1873,7 +2040,14 @@
     },
     equipSkin: equipSkin,
     renderCollection: renderCollection,
+    collectionTier: function () {
+      return collectionTier;
+    },
+    tierClears: function (tier) {
+      return tierClears(stats, tier || settings.group);
+    },
     openCollection: function () {
+      collectionTier = settings.group === 'hard' ? 'hard' : 'easy';
       renderCollection();
       openSheet('sheetCollection');
     },
