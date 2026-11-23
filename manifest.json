@@ -1,0 +1,35 @@
+{
+  "name": "Capydoku",
+  "short_name": "Capydoku",
+  "description": "광고 없는 카피바라 두뇌 퍼즐. 매일 새로워지는 퍼즐을 오프라인에서도 즐겨보세요.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#fdf6ee",
+  "theme_color": "#fdf6ee",
+  "categories": ["games", "puzzle"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
